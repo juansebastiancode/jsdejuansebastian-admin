@@ -98,11 +98,47 @@
       font-weight: 600;
       cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s;
+      margin-left: auto;
+      display: block;
     }
     
     button:hover {
       transform: translateY(-2px);
       box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    }
+    
+    .btn-salir {
+      background: transparent;
+      border: 1px solid #ccc;
+      color: #555;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      margin-left: auto;
+      margin-right: 0;
+    }
+    
+    .btn-salir:hover {
+      background: #f5f5f5;
+      border-color: #999;
+      color: #333;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-group button,
+    form button[type="submit"]:not(.btn-small) {
+      margin-left: auto;
+      margin-right: 0;
+    }
+    
+    .reflexion-edit-form .form-actions {
+      display: flex !important;
+      justify-content: flex-end !important;
+      align-items: center !important;
     }
     
     button.btn-secondary {
@@ -207,13 +243,37 @@
     
     .form-actions {
       display: flex;
+      flex-direction: row;
       gap: 10px;
       margin-top: 15px;
+      justify-content: flex-end;
+      align-items: center;
+      width: 100%;
+    }
+    
+    .form-actions button {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    
+    .reflexion-edit-form {
+      width: 100%;
+    }
+    
+    .reflexion-edit-form .form-actions {
+      display: flex !important;
+      justify-content: flex-end !important;
+      flex-direction: row !important;
     }
   </style>
 </head>
 <body>
   <div class="container">
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 15px; margin-top: -10px;">
+      <button onclick="cerrarSesion()" class="btn-salir">Salir</button>
+    </div>
     <h1>Admin - Reflexiones</h1>
     <p class="subtitle">Gestiona todas tus reflexiones del historial</p>
     
@@ -233,7 +293,9 @@
           <label for="nuevoParrafo">Párrafo</label>
           <textarea id="nuevoParrafo" name="parrafo" required placeholder="Escribe aquí el párrafo completo..."></textarea>
         </div>
-        <button type="submit">Guardar Nueva Reflexión</button>
+        <div style="display: flex; justify-content: flex-end;">
+          <button type="submit">Guardar Nueva Reflexión</button>
+        </div>
       </form>
       <div id="nuevaMessage" class="message"></div>
     </div>
@@ -317,31 +379,84 @@
       }
     }
     
-    // Verificar contraseña al cargar la página
-    verificarPassword().then(() => {
-      if (!passwordCorrecta) {
-        document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;"><h2>Acceso denegado</h2><p>Redirigiendo...</p></div>';
-      }
-    });
-    
     let reflexionesData = [];
     let fechaEditando = null;
     
     // Cargar historial
     async function cargarHistorial() {
       try {
+        console.log('Intentando cargar historial...');
         const response = await fetch('/api/reflexiones');
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error en respuesta:', response.status, errorText);
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+        
         reflexionesData = await response.json();
-        mostrarHistorial();
+        console.log('Historial cargado:', reflexionesData);
+        
+        if (reflexionesData && Array.isArray(reflexionesData)) {
+          mostrarHistorial();
+        } else {
+          throw new Error('El historial no es un array válido');
+        }
       } catch (error) {
         console.error('Error al cargar historial:', error);
-        document.getElementById('historialList').innerHTML = '<p style="color: #dc3545;">Error al cargar el historial</p>';
+        const listElement = document.getElementById('historialList');
+        if (listElement) {
+          listElement.innerHTML = '<p style="color: #dc3545;">Error al cargar el historial: ' + error.message + '</p>';
+        }
       }
     }
+    
+    // Inicializar cuando la contraseña sea correcta
+    async function inicializar() {
+      try {
+        const verificacionExitosa = await verificarPassword();
+        
+        if (!verificacionExitosa) {
+          document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;"><h2>Acceso denegado</h2><p>Redirigiendo...</p></div>';
+          return;
+        }
+        
+        // Si la contraseña es correcta, inicializar todo
+        const fechaInput = document.getElementById('nuevaFecha');
+        if (fechaInput) {
+          fechaInput.value = new Date().toISOString().split('T')[0];
+        }
+        
+        await cargarHistorial();
+      } catch (error) {
+        console.error('Error en inicialización:', error);
+        const listElement = document.getElementById('historialList');
+        if (listElement) {
+          listElement.innerHTML = '<p style="color: #dc3545;">Error al inicializar: ' + error.message + '</p>';
+        }
+      }
+    }
+    
+    // Función para cerrar sesión
+    function cerrarSesion() {
+      if (confirm('¿Estás seguro de que quieres salir?')) {
+        localStorage.removeItem('adminToken');
+        adminToken = null;
+        window.location.href = '/';
+      }
+    }
+    
+    // Verificar contraseña e inicializar al cargar la página
+    inicializar();
     
     // Mostrar historial
     function mostrarHistorial() {
       const list = document.getElementById('historialList');
+      
+      if (!list) {
+        console.error('Elemento historialList no encontrado');
+        return;
+      }
       
       if (reflexionesData.length === 0) {
         list.innerHTML = '<p style="color: #666;">No hay reflexiones en el historial</p>';
@@ -379,8 +494,8 @@
                 <textarea id="editParrafo_${reflexionId}" required>${reflexion.parrafo}</textarea>
               </div>
               <div class="form-actions">
-                <button type="submit">Guardar</button>
                 <button type="button" class="btn-secondary" onclick="cancelarEdicion('${reflexionId}')">Cancelar</button>
+                <button type="submit">Guardar</button>
               </div>
             </form>
           </div>
@@ -501,11 +616,6 @@
       }, 3000);
     }
     
-    // Inicializar solo si la contraseña es correcta
-    if (passwordCorrecta) {
-      document.getElementById('nuevaFecha').value = new Date().toISOString().split('T')[0];
-      cargarHistorial();
-    }
   </script>
 </body>
 </html>
