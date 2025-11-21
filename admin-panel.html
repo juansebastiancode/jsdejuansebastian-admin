@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Reflexiones</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #000000;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .nueva-reflexion {
+      background: #f8f9fa;
+      padding: 25px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    
+    .nueva-reflexion h2 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      color: #333;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    input[type="text"],
+    input[type="date"],
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.3s;
+    }
+    
+    input[type="text"]:focus,
+    input[type="date"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #000000;
+    }
+    
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    
+    button {
+      background: #000000;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    }
+    
+    button.btn-secondary {
+      background: #6c757d;
+    }
+    
+    button.btn-danger {
+      background: #dc3545;
+    }
+    
+    button.btn-small {
+      padding: 8px 16px;
+      font-size: 12px;
+    }
+    
+    .message {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+    }
+    
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+    
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+    
+    .historial {
+      margin-top: 40px;
+    }
+    
+    .historial h2 {
+      font-size: 20px;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    
+    .reflexion-item {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      position: relative;
+    }
+    
+    .reflexion-item.editing {
+    }
+    
+    .reflexion-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    
+    .reflexion-fecha {
+      font-size: 12px;
+      color: #666;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .reflexion-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .reflexion-titulo {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .reflexion-parrafo {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+    
+    .reflexion-edit-form {
+      display: none;
+    }
+    
+    .reflexion-item.editing .reflexion-edit-form {
+      display: block;
+    }
+    
+    .reflexion-item.editing .reflexion-content {
+      display: none;
+    }
+    
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Admin - Reflexiones</h1>
+    <p class="subtitle">Gestiona todas tus reflexiones del historial</p>
+    
+    <!-- Formulario para nueva reflexión -->
+    <div class="nueva-reflexion">
+      <h2>Nueva Reflexión</h2>
+      <form id="nuevaReflexionForm">
+        <div class="form-group">
+          <label for="nuevaFecha">Fecha</label>
+          <input type="date" id="nuevaFecha" name="fecha" required>
+        </div>
+        <div class="form-group">
+          <label for="nuevoTitulo">Título</label>
+          <input type="text" id="nuevoTitulo" name="titulo" required placeholder="Ej: El lenguaje es un arma cargada de intenciones">
+        </div>
+        <div class="form-group">
+          <label for="nuevoParrafo">Párrafo</label>
+          <textarea id="nuevoParrafo" name="parrafo" required placeholder="Escribe aquí el párrafo completo..."></textarea>
+        </div>
+        <button type="submit">Guardar Nueva Reflexión</button>
+      </form>
+      <div id="nuevaMessage" class="message"></div>
+    </div>
+    
+    <!-- Lista del historial -->
+    <div class="historial">
+      <h2>Historial de Reflexiones</h2>
+      <div id="historialList">
+        <p>Cargando...</p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let reflexionesData = [];
+    let fechaEditando = null;
+    
+    // Cargar historial
+    async function cargarHistorial() {
+      try {
+        const response = await fetch('/api/reflexiones');
+        reflexionesData = await response.json();
+        mostrarHistorial();
+      } catch (error) {
+        console.error('Error al cargar historial:', error);
+        document.getElementById('historialList').innerHTML = '<p style="color: #dc3545;">Error al cargar el historial</p>';
+      }
+    }
+    
+    // Mostrar historial
+    function mostrarHistorial() {
+      const list = document.getElementById('historialList');
+      
+      if (reflexionesData.length === 0) {
+        list.innerHTML = '<p style="color: #666;">No hay reflexiones en el historial</p>';
+        return;
+      }
+      
+      list.innerHTML = reflexionesData.map(reflexion => {
+        // Si la reflexión no tiene ID, generarlo (para compatibilidad con datos antiguos)
+        const reflexionId = reflexion.id || Date.now().toString() + Math.random().toString(36).substr(2, 9);
+        return `
+        <div class="reflexion-item" data-id="${reflexionId}">
+          <div class="reflexion-content">
+            <div class="reflexion-header">
+              <span class="reflexion-fecha">${reflexion.fecha}</span>
+              <div class="reflexion-actions">
+                <button class="btn-secondary btn-small" onclick="editarReflexion('${reflexionId}')">Editar</button>
+                <button class="btn-danger btn-small" onclick="eliminarReflexion('${reflexionId}')">Eliminar</button>
+              </div>
+            </div>
+            <div class="reflexion-titulo">${reflexion.titulo}</div>
+            <div class="reflexion-parrafo">${reflexion.parrafo}</div>
+          </div>
+          <div class="reflexion-edit-form">
+            <form onsubmit="guardarEdicion(event, '${reflexionId}')">
+              <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" id="editFecha_${reflexionId}" value="${reflexion.fecha}" required>
+              </div>
+              <div class="form-group">
+                <label>Título</label>
+                <input type="text" id="editTitulo_${reflexionId}" value="${reflexion.titulo}" required>
+              </div>
+              <div class="form-group">
+                <label>Párrafo</label>
+                <textarea id="editParrafo_${reflexionId}" required>${reflexion.parrafo}</textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit">Guardar</button>
+                <button type="button" class="btn-secondary" onclick="cancelarEdicion('${reflexionId}')">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      }).join('');
+    }
+    
+    // Editar reflexión
+    function editarReflexion(id) {
+      // Cerrar otras ediciones
+      document.querySelectorAll('.reflexion-item.editing').forEach(item => {
+        item.classList.remove('editing');
+      });
+      
+      const item = document.querySelector(`[data-id="${id}"]`);
+      if (item) {
+        item.classList.add('editing');
+        fechaEditando = id;
+      }
+    }
+    
+    // Cancelar edición
+    function cancelarEdicion(id) {
+      const item = document.querySelector(`[data-id="${id}"]`);
+      if (item) {
+        item.classList.remove('editing');
+      }
+      fechaEditando = null;
+    }
+    
+    // Guardar edición
+    async function guardarEdicion(event, id) {
+      event.preventDefault();
+      
+      const fecha = document.getElementById(`editFecha_${id}`).value;
+      const titulo = document.getElementById(`editTitulo_${id}`).value;
+      const parrafo = document.getElementById(`editParrafo_${id}`).value;
+      
+      try {
+        const response = await fetch(`/api/reflexiones/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ titulo, parrafo, fecha })
+        });
+        
+        if (response.ok) {
+          await cargarHistorial();
+          mostrarMensaje('nuevaMessage', 'Reflexión editada exitosamente', 'success');
+        } else {
+          const data = await response.json();
+          mostrarMensaje('nuevaMessage', 'Error: ' + (data.error || 'Error al editar'), 'error');
+        }
+      } catch (error) {
+        mostrarMensaje('nuevaMessage', 'Error de conexión', 'error');
+      }
+    }
+    
+    // Eliminar reflexión
+    async function eliminarReflexion(id) {
+      if (!confirm('¿Estás seguro de que quieres eliminar esta reflexión?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/reflexiones/${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          await cargarHistorial();
+          mostrarMensaje('nuevaMessage', 'Reflexión eliminada exitosamente', 'success');
+        } else {
+          mostrarMensaje('nuevaMessage', 'Error al eliminar', 'error');
+        }
+      } catch (error) {
+        mostrarMensaje('nuevaMessage', 'Error de conexión', 'error');
+      }
+    }
+    
+    // Formulario nueva reflexión
+    document.getElementById('nuevaReflexionForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const fecha = document.getElementById('nuevaFecha').value;
+      const titulo = document.getElementById('nuevoTitulo').value;
+      const parrafo = document.getElementById('nuevoParrafo').value;
+      
+      try {
+        // Siempre agregar nueva reflexión, nunca reemplazar existentes
+        const response = await fetch('/api/reflexiones', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ titulo, parrafo, fecha })
+        });
+        
+        if (response.ok) {
+          document.getElementById('nuevaReflexionForm').reset();
+          document.getElementById('nuevaFecha').value = new Date().toISOString().split('T')[0];
+          await cargarHistorial();
+          mostrarMensaje('nuevaMessage', 'Reflexión guardada exitosamente', 'success');
+        } else {
+          const data = await response.json();
+          mostrarMensaje('nuevaMessage', 'Error: ' + (data.error || 'Error al guardar'), 'error');
+        }
+      } catch (error) {
+        mostrarMensaje('nuevaMessage', 'Error de conexión', 'error');
+      }
+    });
+    
+    // Mostrar mensaje
+    function mostrarMensaje(id, texto, tipo) {
+      const msg = document.getElementById(id);
+      msg.className = `message ${tipo}`;
+      msg.textContent = texto;
+      setTimeout(() => {
+        msg.className = 'message';
+      }, 3000);
+    }
+    
+    // Inicializar
+    document.getElementById('nuevaFecha').value = new Date().toISOString().split('T')[0];
+    cargarHistorial();
+  </script>
+</body>
+</html>
+
