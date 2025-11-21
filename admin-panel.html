@@ -142,11 +142,25 @@
     }
     
     button.btn-secondary {
-      background: #6c757d;
+      background: transparent;
+      border: 1px solid #666;
+      color: #333;
+    }
+    
+    button.btn-secondary:hover {
+      background: #f5f5f5;
+      border-color: #333;
     }
     
     button.btn-danger {
+      background: transparent;
+      border: 1px solid #dc3545;
+      color: #dc3545;
+    }
+    
+    button.btn-danger:hover {
       background: #dc3545;
+      color: white;
     }
     
     button.btn-small {
@@ -267,6 +281,223 @@
       justify-content: flex-end !important;
       flex-direction: row !important;
     }
+    
+    /* Estilos responsive para móvil */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .container {
+        padding: 20px 15px;
+        border-radius: 8px;
+      }
+      
+      h1 {
+        font-size: 22px;
+        margin-bottom: 8px;
+      }
+      
+      .subtitle {
+        font-size: 13px;
+        margin-bottom: 20px;
+      }
+      
+      .nueva-reflexion {
+        padding: 20px 15px;
+        margin-bottom: 20px;
+      }
+      
+      .nueva-reflexion h2 {
+        font-size: 16px;
+        margin-bottom: 15px;
+      }
+      
+      .form-group {
+        margin-bottom: 18px;
+      }
+      
+      label {
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      
+      input[type="text"],
+      input[type="date"],
+      textarea {
+        padding: 14px;
+        font-size: 16px; /* Evita zoom en iOS */
+        border-radius: 6px;
+      }
+      
+      textarea {
+        min-height: 150px;
+        font-size: 16px; /* Evita zoom en iOS */
+      }
+      
+      button {
+        padding: 14px 24px;
+        font-size: 16px;
+        width: 100%;
+        margin-left: 0;
+        margin-top: 10px;
+        min-height: 48px; /* Tamaño táctil recomendado */
+      }
+      
+      .btn-salir {
+        padding: 10px 18px;
+        font-size: 14px;
+        min-height: 44px;
+      }
+      
+      .btn-small {
+        padding: 10px 16px;
+        font-size: 13px;
+        min-height: 40px;
+      }
+      
+      .form-actions {
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 20px;
+        width: 100%;
+      }
+      
+      .form-actions button {
+        width: 100% !important;
+        margin: 0 !important;
+        min-height: 48px;
+        font-size: 16px;
+        padding: 14px 24px;
+      }
+      
+      .reflexion-edit-form {
+        display: none !important;
+        width: 100% !important;
+        padding: 0;
+        margin-top: 15px;
+      }
+      
+      .reflexion-item.editing .reflexion-edit-form {
+        display: block !important;
+      }
+      
+      .reflexion-item.editing .reflexion-content {
+        display: none !important;
+      }
+      
+      .reflexion-edit-form form {
+        width: 100%;
+      }
+      
+      .reflexion-edit-form .form-actions {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-end !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+        width: 100% !important;
+        margin-top: 15px !important;
+      }
+      
+      .reflexion-edit-form .form-actions button {
+        width: 100% !important;
+        margin: 0 !important;
+        min-height: 48px !important;
+        padding: 14px 24px !important;
+        font-size: 16px !important;
+        display: block !important;
+      }
+      
+      .reflexion-edit-form .form-group {
+        margin-bottom: 18px;
+      }
+      
+      .reflexion-edit-form input,
+      .reflexion-edit-form textarea {
+        font-size: 16px !important;
+        padding: 14px !important;
+        width: 100%;
+      }
+      
+      .reflexion-item {
+        padding: 15px;
+        margin-bottom: 12px;
+      }
+      
+      .reflexion-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      
+      .reflexion-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+      
+      .reflexion-actions button {
+        flex: 1;
+        max-width: 120px;
+      }
+      
+      .reflexion-titulo {
+        font-size: 15px;
+        margin-bottom: 8px;
+      }
+      
+      .reflexion-parrafo {
+        font-size: 13px;
+        line-height: 1.6;
+        margin-bottom: 12px;
+      }
+      
+      .reflexion-fecha {
+        font-size: 11px;
+      }
+      
+      .historial {
+        margin-top: 30px;
+      }
+      
+      .historial h2 {
+        font-size: 18px;
+        margin-bottom: 15px;
+      }
+      
+      .message {
+        font-size: 14px;
+        padding: 10px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      body {
+        padding: 5px;
+      }
+      
+      .container {
+        padding: 15px 12px;
+      }
+      
+      h1 {
+        font-size: 20px;
+      }
+      
+      .nueva-reflexion {
+        padding: 15px 12px;
+      }
+      
+      input[type="text"],
+      input[type="date"],
+      textarea {
+        padding: 12px;
+      }
+      
+      .reflexion-item {
+        padding: 12px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -294,7 +525,7 @@
           <textarea id="nuevoParrafo" name="parrafo" required placeholder="Escribe aquí el párrafo completo..."></textarea>
         </div>
         <div style="display: flex; justify-content: flex-end;">
-          <button type="submit">Guardar Nueva Reflexión</button>
+          <button type="submit" class="btn-guardar-nueva">Guardar Nueva Reflexión</button>
         </div>
       </form>
       <div id="nuevaMessage" class="message"></div>
