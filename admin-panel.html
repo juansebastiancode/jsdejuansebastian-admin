@@ -248,6 +248,82 @@
   </div>
   
   <script>
+    // Ocultar el contenido inicialmente
+    document.body.style.display = 'none';
+    
+    let adminToken = localStorage.getItem('adminToken');
+    let passwordCorrecta = false;
+    
+    // Función para verificar contraseña con el servidor
+    async function verificarPassword() {
+      // Primero verificar si hay token guardado
+      if (adminToken) {
+        try {
+          const response = await fetch(`/admin/verify?token=${adminToken}`);
+          const data = await response.json();
+          
+          if (data.valid) {
+            passwordCorrecta = true;
+            document.body.style.display = 'block';
+            return true;
+          } else {
+            // Token inválido, eliminar del localStorage
+            localStorage.removeItem('adminToken');
+            adminToken = null;
+          }
+        } catch (error) {
+          console.error('Error al verificar token:', error);
+        }
+      }
+      
+      // Si no hay token válido, pedir contraseña
+      const passwordIngresada = prompt('Ingresa la contraseña para acceder al panel admin:');
+      
+      if (passwordIngresada === null) {
+        // El usuario canceló el prompt
+        alert('Acceso cancelado.');
+        window.location.href = '/';
+        return false;
+      }
+      
+      // Verificar contraseña con el servidor
+      try {
+        const response = await fetch('/admin/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password: passwordIngresada })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.token) {
+          // Contraseña correcta, guardar token
+          adminToken = data.token;
+          localStorage.setItem('adminToken', adminToken);
+          passwordCorrecta = true;
+          document.body.style.display = 'block';
+          return true;
+        } else {
+          alert('Contraseña incorrecta. Acceso denegado.');
+          window.location.href = '/';
+          return false;
+        }
+      } catch (error) {
+        alert('Error de conexión. Intenta de nuevo.');
+        window.location.href = '/';
+        return false;
+      }
+    }
+    
+    // Verificar contraseña al cargar la página
+    verificarPassword().then(() => {
+      if (!passwordCorrecta) {
+        document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;"><h2>Acceso denegado</h2><p>Redirigiendo...</p></div>';
+      }
+    });
+    
     let reflexionesData = [];
     let fechaEditando = null;
     
@@ -425,9 +501,11 @@
       }, 3000);
     }
     
-    // Inicializar
-    document.getElementById('nuevaFecha').value = new Date().toISOString().split('T')[0];
-    cargarHistorial();
+    // Inicializar solo si la contraseña es correcta
+    if (passwordCorrecta) {
+      document.getElementById('nuevaFecha').value = new Date().toISOString().split('T')[0];
+      cargarHistorial();
+    }
   </script>
 </body>
 </html>

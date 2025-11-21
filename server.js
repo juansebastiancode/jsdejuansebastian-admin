@@ -232,6 +232,56 @@ app.post('/api/reflexiones', async (req, res) => {
   }
 });
 
+// Contraseña del admin (mejor moverla a variable de entorno en producción)
+const ADMIN_PASSWORD = 'jsdeadmin2025';
+
+// Verificar sesión admin (token simple en memoria - en producción usar mejor sistema de sesiones)
+const adminSessions = new Set();
+
+// Endpoint para login del admin
+app.post('/admin/login', (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    
+    const { password } = req.body;
+    
+    if (password === ADMIN_PASSWORD) {
+      // Generar token simple
+      const token = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      adminSessions.add(token);
+      
+      // Token expira después de 24 horas (en producción usar mejor sistema)
+      setTimeout(() => {
+        adminSessions.delete(token);
+      }, 24 * 60 * 60 * 1000);
+      
+      res.json({ success: true, token: token });
+    } else {
+      res.status(401).json({ success: false, error: 'Contraseña incorrecta' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Error al verificar contraseña' });
+  }
+});
+
+// Verificar token de sesión
+app.get('/admin/verify', (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    const token = req.headers.authorization?.replace('Bearer ', '') || req.query.token;
+    
+    if (token && adminSessions.has(token)) {
+      res.json({ valid: true });
+    } else {
+      res.json({ valid: false });
+    }
+  } catch (error) {
+    res.json({ valid: false });
+  }
+});
+
 // Panel admin - HTML mejorado con historial
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-panel.html'));
