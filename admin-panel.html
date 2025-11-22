@@ -759,10 +759,14 @@
           } else {
             let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
             data.emails.forEach((item, index) => {
+              const emailEscaped = item.email.replace(/'/g, "\\'").replace(/"/g, '&quot;');
               html += `
-                <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0;">
-                  <div style="color: #333; font-weight: 500; margin-bottom: 5px;">${item.email}</div>
-                  <div style="color: #999; font-size: 12px;">Suscrito el: ${item.fecha}</div>
+                <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
+                  <div style="flex: 1;">
+                    <div style="color: #333; font-weight: 500; margin-bottom: 5px;">${item.email}</div>
+                    <div style="color: #999; font-size: 12px;">Suscrito el: ${item.fecha}</div>
+                  </div>
+                  <button onclick="eliminarEmail('${emailEscaped}')" class="btn-danger" style="padding: 8px 16px; font-size: 14px; margin-left: 10px; white-space: nowrap;">Eliminar</button>
                 </div>
               `;
             });
@@ -781,6 +785,47 @@
         console.error('Error al cargar emails:', error);
         const emailsList = document.getElementById('emailsList');
         emailsList.innerHTML = '<p style="color: #dc3545; font-size: 14px;">Error de conexión</p>';
+      }
+    }
+    
+    // Eliminar un email del newsletter
+    async function eliminarEmail(email) {
+      if (!confirm(`¿Estás seguro de que quieres eliminar el correo: ${email}?`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/newsletter/emails/${encodeURIComponent(email)}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': adminToken
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          // Recargar la lista de emails
+          await cargarEmails();
+          
+          // Mostrar mensaje de éxito
+          const emailsList = document.getElementById('emailsList');
+          if (emailsList) {
+            const successMsg = document.createElement('div');
+            successMsg.style.cssText = 'padding: 10px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 6px; margin-bottom: 10px; font-size: 14px;';
+            successMsg.textContent = 'Correo eliminado exitosamente';
+            emailsList.insertBefore(successMsg, emailsList.firstChild);
+            
+            setTimeout(() => {
+              successMsg.remove();
+            }, 3000);
+          }
+        } else {
+          alert('Error: ' + (data.error || 'Error al eliminar el correo'));
+        }
+      } catch (error) {
+        console.error('Error al eliminar correo:', error);
+        alert('Error de conexión al eliminar el correo');
       }
     }
     
@@ -831,7 +876,18 @@
             body: JSON.stringify({ asunto, mensaje })
           });
           
-          const data = await response.json();
+          let data;
+          try {
+            data = await response.json();
+          } catch (e) {
+            correoMessage.className = 'message error';
+            correoMessage.textContent = 'Error: No se pudo leer la respuesta del servidor. El servidor puede estar bloqueando conexiones SMTP.';
+            setTimeout(() => {
+              correoMessage.className = 'message';
+              correoMessage.style.display = 'none';
+            }, 8000);
+            return;
+          }
           
           if (response.ok && data.success) {
             correoMessage.className = 'message success';
@@ -846,12 +902,12 @@
             }, 10000);
           } else {
             correoMessage.className = 'message error';
-            correoMessage.textContent = data.error || 'Error al enviar el correo';
+            correoMessage.textContent = data.error || data.message || 'Error al enviar el correo';
             
             setTimeout(() => {
               correoMessage.className = 'message';
               correoMessage.style.display = 'none';
-            }, 5000);
+            }, 8000);
           }
         } catch (error) {
           console.error('Error al enviar correo:', error);

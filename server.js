@@ -5,7 +5,7 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const DATA_FILE = path.join(__dirname, 'data.json');
 
 // Middleware CORS - configurar antes de cualquier ruta
@@ -322,12 +322,63 @@ app.get('/api/newsletter/emails', async (req, res) => {
     }
     
     const data = await readData();
-    const emails = data.newsletter?.emails || [];
+    let emails = data.newsletter?.emails || [];
+    
+    // Ordenar por fecha descendente (más reciente primero)
+    emails = emails.sort((a, b) => {
+      const fechaA = new Date(a.fecha);
+      const fechaB = new Date(b.fecha);
+      return fechaB - fechaA; // Orden descendente (más reciente primero)
+    });
     
     res.json({ success: true, emails });
   } catch (error) {
     console.error('Error al obtener emails:', error);
     res.status(500).json({ error: 'Error al obtener los emails' });
+  }
+});
+
+// Eliminar un correo del newsletter (solo admin)
+app.delete('/api/newsletter/emails/:email', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    // Obtener token del header Authorization
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const emailToDelete = decodeURIComponent(req.params.email);
+    
+    if (!emailToDelete) {
+      return res.status(400).json({ error: 'El correo es requerido' });
+    }
+    
+    const data = await readData();
+    if (!data.newsletter) {
+      data.newsletter = { emails: [] };
+    }
+    
+    // Buscar y eliminar el email
+    const initialLength = data.newsletter.emails.length;
+    data.newsletter.emails = data.newsletter.emails.filter(
+      e => e.email.toLowerCase() !== emailToDelete.toLowerCase()
+    );
+    
+    if (data.newsletter.emails.length === initialLength) {
+      return res.status(404).json({ error: 'Correo no encontrado' });
+    }
+    
+    await saveData(data);
+    res.json({ success: true, message: 'Correo eliminado exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar correo:', error);
+    res.status(500).json({ error: 'Error al eliminar el correo' });
   }
 });
 
@@ -366,36 +417,63 @@ app.post('/api/newsletter/send', async (req, res) => {
       return res.status(400).json({ error: 'No hay suscriptores para enviar' });
     }
     
+    console.log(`Preparando enviar correo a ${emails.length} suscriptores...`);
+    console.log('Asunto:', asunto);
+    console.log('Mensaje (primeros 50 chars):', mensaje.substring(0, 50));
+    
     // Configurar transporter de nodemailer
     const transporter = nodemailer.createTransport({
       host: SMTP_CONFIG.host,
       port: SMTP_CONFIG.port,
       secure: SMTP_CONFIG.secure,
-      auth: SMTP_CONFIG.auth
+      auth: SMTP_CONFIG.auth,
+      connectionTimeout: 30000, // 30 segundos timeout para conexión
+      greetingTimeout: 30000, // 30 segundos timeout para saludo
+      socketTimeout: 30000, // 30 segundos timeout para socket
+      pool: true, // Usar pool de conexiones
+      maxConnections: 1,
+      maxMessages: 3
     });
     
-    // Enviar correos a todos los suscriptores
+    // Enviar correos a todos los suscriptores (sin verificar conexión primero para evitar timeout)
     const destinatarios = emails.map(e => e.email);
     const resultados = [];
     
-    for (const email of destinatarios) {
+    console.log(`Iniciando envío a ${destinatarios.length} destinatarios...`);
+    
+    // Enviar correos con timeout individual para evitar que se quede colgado
+    for (let i = 0; i < destinatarios.length; i++) {
+      const email = destinatarios[i];
       try {
-        await transporter.sendMail({
+        console.log(`Enviando correo ${i + 1}/${destinatarios.length} a ${email}...`);
+        
+        // Crear una promesa con timeout para evitar que se quede colgado
+        const sendPromise = transporter.sendMail({
           from: SMTP_CONFIG.auth.user,
           to: email,
           subject: asunto,
           text: mensaje,
           html: mensaje.replace(/\n/g, '<br>')
         });
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout al enviar correo (30 segundos)')), 30000)
+        );
+        
+        await Promise.race([sendPromise, timeoutPromise]);
+        
+        console.log(`✓ Correo enviado exitosamente a ${email}`);
         resultados.push({ email, success: true });
       } catch (error) {
-        console.error(`Error al enviar a ${email}:`, error);
+        console.error(`✗ Error al enviar a ${email}:`, error.message);
         resultados.push({ email, success: false, error: error.message });
       }
     }
     
     const exitosos = resultados.filter(r => r.success).length;
     const fallidos = resultados.filter(r => !r.success).length;
+    
+    console.log(`=== Envío completado: ${exitosos} exitosos, ${fallidos} fallidos ===`);
     
     res.json({ 
       success: true, 
@@ -407,7 +485,12 @@ app.post('/api/newsletter/send', async (req, res) => {
     });
   } catch (error) {
     console.error('Error al enviar correo:', error);
-    res.status(500).json({ error: 'Error al enviar el correo' });
+    console.error('Detalles del error:', error.stack);
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al enviar el correo: ' + (error.message || 'Error desconocido'),
+      message: 'Error de conexión con el servidor SMTP. Verifica que Railway permita conexiones SMTP salientes.'
+    });
   }
 });
 
