@@ -531,6 +531,39 @@
       <div id="nuevaMessage" class="message"></div>
     </div>
     
+    <!-- Sección Newsletter -->
+    <div class="newsletter-section" style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 30px;">
+      <h2>Newsletter</h2>
+      <div style="margin-bottom: 20px;">
+        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+          Total de suscriptores: <strong id="totalSuscriptores">0</strong>
+        </p>
+        <button onclick="cargarEmails()" class="btn-secondary" style="margin-right: 10px;">Ver Suscriptores</button>
+      </div>
+      
+      <div id="emailsList" style="display: none; max-height: 300px; overflow-y: auto; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e0e0e0;">
+        <p style="color: #666; font-size: 14px;">Cargando...</p>
+      </div>
+      
+      <div class="newsletter-form" style="display: none;" id="newsletterFormSection">
+        <h3 style="font-size: 16px; color: #333; margin-bottom: 15px;">Enviar Correo a Todos</h3>
+        <form id="enviarCorreoForm">
+          <div class="form-group">
+            <label for="correoAsunto">Asunto</label>
+            <input type="text" id="correoAsunto" name="asunto" required placeholder="Ej: Nueva reflexión">
+          </div>
+          <div class="form-group">
+            <label for="correoMensaje">Mensaje</label>
+            <textarea id="correoMensaje" name="mensaje" required placeholder="Escribe aquí el mensaje del correo..." style="min-height: 150px;"></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <button type="submit" class="btn-guardar-nueva">Enviar Correo</button>
+          </div>
+        </form>
+        <div id="correoMessage" class="message"></div>
+      </div>
+    </div>
+    
     <!-- Lista del historial -->
     <div class="historial">
       <h2>Historial de Reflexiones</h2>
@@ -659,6 +692,7 @@
         }
         
         await cargarHistorial();
+        await cargarTotalSuscriptores();
       } catch (error) {
         console.error('Error en inicialización:', error);
         const listElement = document.getElementById('historialList');
@@ -675,6 +709,161 @@
         adminToken = null;
         window.location.href = '/';
       }
+    }
+    
+    // ============ NEWSLETTER FUNCTIONS ============
+    
+    // Cargar total de suscriptores
+    async function cargarTotalSuscriptores() {
+      try {
+        const response = await fetch('/api/newsletter/emails', {
+          headers: {
+            'Authorization': adminToken
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.emails) {
+          const totalSuscriptores = document.getElementById('totalSuscriptores');
+          if (totalSuscriptores) {
+            totalSuscriptores.textContent = data.emails.length;
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar total de suscriptores:', error);
+      }
+    }
+    
+    // Cargar emails de suscriptores
+    async function cargarEmails() {
+      try {
+        const emailsList = document.getElementById('emailsList');
+        emailsList.style.display = 'block';
+        emailsList.innerHTML = '<p style="color: #666; font-size: 14px;">Cargando...</p>';
+        
+        const response = await fetch('/api/newsletter/emails', {
+          headers: {
+            'Authorization': adminToken
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.emails) {
+          const totalSuscriptores = document.getElementById('totalSuscriptores');
+          totalSuscriptores.textContent = data.emails.length;
+          
+          if (data.emails.length === 0) {
+            emailsList.innerHTML = '<p style="color: #666; font-size: 14px;">No hay suscriptores aún.</p>';
+          } else {
+            let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+            data.emails.forEach((item, index) => {
+              html += `
+                <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0;">
+                  <div style="color: #333; font-weight: 500; margin-bottom: 5px;">${item.email}</div>
+                  <div style="color: #999; font-size: 12px;">Suscrito el: ${item.fecha}</div>
+                </div>
+              `;
+            });
+            html += '</div>';
+            emailsList.innerHTML = html;
+          }
+          
+          // Mostrar formulario de envío si hay emails
+          if (data.emails.length > 0) {
+            document.getElementById('newsletterFormSection').style.display = 'block';
+          }
+        } else {
+          emailsList.innerHTML = '<p style="color: #dc3545; font-size: 14px;">Error al cargar los emails</p>';
+        }
+      } catch (error) {
+        console.error('Error al cargar emails:', error);
+        const emailsList = document.getElementById('emailsList');
+        emailsList.innerHTML = '<p style="color: #dc3545; font-size: 14px;">Error de conexión</p>';
+      }
+    }
+    
+    // Formulario para enviar correo
+    const enviarCorreoForm = document.getElementById('enviarCorreoForm');
+    if (enviarCorreoForm) {
+      enviarCorreoForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const asunto = document.getElementById('correoAsunto').value;
+        const mensaje = document.getElementById('correoMensaje').value;
+        const correoMessage = document.getElementById('correoMessage');
+        
+        if (!asunto || !mensaje) {
+          correoMessage.className = 'message error';
+          correoMessage.textContent = 'El asunto y mensaje son requeridos';
+          return;
+        }
+        
+        if (!confirm(`¿Estás seguro de que quieres enviar este correo a todos los suscriptores?`)) {
+          return;
+        }
+        
+        correoMessage.className = 'message';
+        correoMessage.textContent = 'Enviando...';
+        correoMessage.style.display = 'block';
+        
+        // Actualizar token desde localStorage antes de enviar
+        adminToken = localStorage.getItem('adminToken');
+        
+        // Verificar que tenemos el token antes de enviar
+        if (!adminToken) {
+          correoMessage.className = 'message error';
+          correoMessage.textContent = 'Error: No estás autenticado. Por favor, recarga la página e inicia sesión nuevamente.';
+          correoMessage.style.display = 'block';
+          return;
+        }
+        
+        console.log('Enviando correo. Token presente:', adminToken ? 'Sí' : 'No');
+        
+        try {
+          const response = await fetch('/api/newsletter/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': adminToken
+            },
+            body: JSON.stringify({ asunto, mensaje })
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok && data.success) {
+            correoMessage.className = 'message success';
+            correoMessage.textContent = data.message || `Correo enviado exitosamente a ${data.emailsCount || 0} suscriptores`;
+            
+            // Limpiar formulario
+            enviarCorreoForm.reset();
+            
+            setTimeout(() => {
+              correoMessage.className = 'message';
+              correoMessage.style.display = 'none';
+            }, 10000);
+          } else {
+            correoMessage.className = 'message error';
+            correoMessage.textContent = data.error || 'Error al enviar el correo';
+            
+            setTimeout(() => {
+              correoMessage.className = 'message';
+              correoMessage.style.display = 'none';
+            }, 5000);
+          }
+        } catch (error) {
+          console.error('Error al enviar correo:', error);
+          correoMessage.className = 'message error';
+          correoMessage.textContent = 'Error de conexión';
+          
+          setTimeout(() => {
+            correoMessage.className = 'message';
+            correoMessage.style.display = 'none';
+          }, 5000);
+        }
+      });
     }
     
     // Verificar contraseña e inicializar al cargar la página

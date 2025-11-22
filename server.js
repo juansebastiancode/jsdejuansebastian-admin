@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,9 +33,12 @@ async function initDataFile() {
   try {
     await fs.access(DATA_FILE);
   } catch (error) {
-    // El archivo no existe, crearlo con estructura inicial (solo historial)
+    // El archivo no existe, crearlo con estructura inicial
     const initialData = {
-      historial: []
+      historial: [],
+      newsletter: {
+        emails: []
+      }
     };
     await fs.writeFile(DATA_FILE, JSON.stringify(initialData, null, 2));
   }
@@ -48,6 +52,10 @@ async function readData() {
     // Asegurar que siempre tenga historial
     if (!parsed.historial) {
       parsed.historial = [];
+    }
+    // Asegurar que siempre tenga newsletter
+    if (!parsed.newsletter) {
+      parsed.newsletter = { emails: [] };
     }
     return parsed;
   } catch (error) {
@@ -238,7 +246,171 @@ const ADMIN_PASSWORD = 'jsdeadmin2025';
 // Verificar sesión admin (token simple en memoria - en producción usar mejor sistema de sesiones)
 const adminSessions = new Set();
 
+// Configuración SMTP para newsletter
+const SMTP_CONFIG = {
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // true para 465, false para otros puertos
+  auth: {
+    user: 'developjuansebastian@gmail.com',
+    pass: 'iyuzpzpctykkofd' // Contraseña de aplicación Gmail
+  }
+};
+
 // Endpoint para login del admin
+// ============ NEWSLETTER ENDPOINTS ============
+
+// Suscribirse al newsletter
+app.post('/api/newsletter/subscribe', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    
+    const { email } = req.body;
+    
+    if (!email || !email.trim()) {
+      return res.status(400).json({ error: 'El correo electrónico es requerido' });
+    }
+    
+    // Validar formato de email básico
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({ error: 'El formato del correo electrónico no es válido' });
+    }
+    
+    const data = await readData();
+    if (!data.newsletter) {
+      data.newsletter = { emails: [] };
+    }
+    
+    // Verificar si el email ya existe
+    const emailNormalized = email.trim().toLowerCase();
+    const existe = data.newsletter.emails.some(e => e.email.toLowerCase() === emailNormalized);
+    
+    if (existe) {
+      return res.status(400).json({ error: 'Este correo ya está suscrito' });
+    }
+    
+    // Agregar email con fecha de suscripción
+    data.newsletter.emails.push({
+      email: email.trim(),
+      fecha: new Date().toISOString().split('T')[0]
+    });
+    
+    await saveData(data);
+    res.json({ success: true, message: 'Suscripción exitosa' });
+  } catch (error) {
+    console.error('Error al suscribirse:', error);
+    res.status(500).json({ error: 'Error al procesar la suscripción' });
+  }
+});
+
+// Obtener lista de emails (solo admin)
+app.get('/api/newsletter/emails', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    // Obtener token del header Authorization (puede venir con o sin "Bearer ")
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const data = await readData();
+    const emails = data.newsletter?.emails || [];
+    
+    res.json({ success: true, emails });
+  } catch (error) {
+    console.error('Error al obtener emails:', error);
+    res.status(500).json({ error: 'Error al obtener los emails' });
+  }
+});
+
+// Enviar correo a todos los suscriptores (solo admin)
+app.post('/api/newsletter/send', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    // Obtener token del header Authorization (puede venir con o sin "Bearer ")
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    console.log('=== Enviar correo ===');
+    console.log('Header authorization recibido:', req.headers.authorization ? 'presente' : 'ausente');
+    console.log('Token extraído:', token ? token.substring(0, 20) + '...' : 'ninguno');
+    console.log('Tokens activos:', Array.from(adminSessions).length);
+    console.log('Token válido?', token && adminSessions.has(token));
+    
+    if (!token || !adminSessions.has(token)) {
+      console.log('Error: Token no autorizado');
+      return res.status(401).json({ error: 'No autorizado. Por favor, recarga la página e inicia sesión nuevamente.' });
+    }
+    
+    const { asunto, mensaje } = req.body;
+    
+    if (!asunto || !mensaje) {
+      return res.status(400).json({ error: 'El asunto y mensaje son requeridos' });
+    }
+    
+    const data = await readData();
+    const emails = data.newsletter?.emails || [];
+    
+    if (emails.length === 0) {
+      return res.status(400).json({ error: 'No hay suscriptores para enviar' });
+    }
+    
+    // Configurar transporter de nodemailer
+    const transporter = nodemailer.createTransport({
+      host: SMTP_CONFIG.host,
+      port: SMTP_CONFIG.port,
+      secure: SMTP_CONFIG.secure,
+      auth: SMTP_CONFIG.auth
+    });
+    
+    // Enviar correos a todos los suscriptores
+    const destinatarios = emails.map(e => e.email);
+    const resultados = [];
+    
+    for (const email of destinatarios) {
+      try {
+        await transporter.sendMail({
+          from: SMTP_CONFIG.auth.user,
+          to: email,
+          subject: asunto,
+          text: mensaje,
+          html: mensaje.replace(/\n/g, '<br>')
+        });
+        resultados.push({ email, success: true });
+      } catch (error) {
+        console.error(`Error al enviar a ${email}:`, error);
+        resultados.push({ email, success: false, error: error.message });
+      }
+    }
+    
+    const exitosos = resultados.filter(r => r.success).length;
+    const fallidos = resultados.filter(r => !r.success).length;
+    
+    res.json({ 
+      success: true, 
+      message: `Enviados ${exitosos} correos exitosamente${fallidos > 0 ? `, ${fallidos} fallidos` : ''}`,
+      emailsCount: emails.length,
+      sent: exitosos,
+      failed: fallidos,
+      results: resultados
+    });
+  } catch (error) {
+    console.error('Error al enviar correo:', error);
+    res.status(500).json({ error: 'Error al enviar el correo' });
+  }
+});
+
 app.post('/admin/login', (req, res) => {
   try {
     res.header('Access-Control-Allow-Origin', '*');

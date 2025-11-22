@@ -26,5 +26,17 @@
       "parrafo": "En un mundo lleno de máscaras y apariencias, ser auténtico se ha convertido en un lujo. No el lujo de los objetos caros o las experiencias exclusivas, sino el lujo de poder ser uno mismo sin disculpas, sin miedo, sin necesidad de fingir. Ese es el único lujo que realmente importa.",
       "fecha": "2025-11-16"
     }
-  ]
+  ],
+  "newsletter": {
+    "emails": [
+      {
+        "email": "juansemartinezlaso@gmail.com",
+        "fecha": "2025-11-22"
+      },
+      {
+        "email": "luciamonroscortell@gmail.com",
+        "fecha": "2025-11-22"
+      }
+    ]
+  }
 }
