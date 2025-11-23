@@ -1,16 +1,34 @@
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs').promises;
 const path = require('path');
 const nodemailer = require('nodemailer');
+const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const DATA_FILE = path.join(__dirname, 'data.json');
+
+// Conexión a MongoDB
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://developjuansebastian_db_user:AjRlHPRSQrM01mpA@proyectomongodb.ycpota1.mongodb.net/jsdejuansebastian?appName=ProyectoMongodb';
+
+// Modelos de Mongoose
+const reflexionSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  titulo: { type: String, required: true },
+  parrafo: { type: String, required: true },
+  fecha: { type: String, required: true }
+}, { timestamps: false });
+
+const emailSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true, lowercase: true },
+  fecha: { type: String, required: true }
+}, { timestamps: false });
+
+const Reflexion = mongoose.model('Reflexion', reflexionSchema, 'reflexiones');
+const Email = mongoose.model('Email', emailSchema, 'emails');
 
 // Middleware CORS - configurar antes de cualquier ruta
 app.use(cors({
-  origin: '*', // Permitir cualquier origen
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -28,90 +46,36 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(webPath, 'index.html'));
 });
 
-// Inicializar archivo de datos si no existe
-async function initDataFile() {
+// Conectar a MongoDB
+async function connectMongoDB() {
   try {
-    await fs.access(DATA_FILE);
+    await mongoose.connect(MONGODB_URI);
+    console.log('✓ Conectado a MongoDB');
   } catch (error) {
-    // El archivo no existe, crearlo con estructura inicial
-    const initialData = {
-      historial: [],
-      newsletter: {
-        emails: []
-      }
-    };
-    await fs.writeFile(DATA_FILE, JSON.stringify(initialData, null, 2));
+    console.error('Error al conectar a MongoDB:', error);
+    throw error;
   }
 }
 
-// Leer datos
-async function readData() {
-  try {
-    const data = await fs.readFile(DATA_FILE, 'utf8');
-    const parsed = JSON.parse(data);
-    // Asegurar que siempre tenga historial
-    if (!parsed.historial) {
-      parsed.historial = [];
-    }
-    // Asegurar que siempre tenga newsletter
-    if (!parsed.newsletter) {
-      parsed.newsletter = { emails: [] };
-    }
-    return parsed;
-  } catch (error) {
-    return { historial: [] };
-  }
-}
-
-// Guardar datos
-async function saveData(data) {
-  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
-}
-
-// API: Obtener todas las reflexiones (historial completo - EXACTO del JSON)
+// API: Obtener todas las reflexiones
 app.get('/api/reflexiones', async (req, res) => {
   try {
-    // Headers CORS explícitos
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
     
-    const data = await readData();
+    const reflexiones = await Reflexion.find({}).lean();
     
-    // Devolver SOLO el historial tal cual está, sin filtros ni duplicados eliminados
-    // Permitir múltiples reflexiones con la misma fecha
-    let todasLasReflexiones = [];
-    
-    if (data.historial && Array.isArray(data.historial)) {
-      // Incluir todas las reflexiones del historial, incluso si tienen la misma fecha
-      // Asignar ID a reflexiones que no lo tengan (compatibilidad con datos antiguos)
-      data.historial.forEach(reflexion => {
-        if (reflexion.titulo && reflexion.parrafo && reflexion.fecha) {
-          if (!reflexion.id) {
-            reflexion.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-          }
-          todasLasReflexiones.push(reflexion);
-        }
-      });
-      // Guardar si se agregaron IDs
-      if (data.historial.some(r => r.id && !todasLasReflexiones.find(tr => tr.id === r.id))) {
-        await saveData(data);
-      }
-    }
-    
-    // Ordenar por fecha descendente (más reciente primero), manteniendo el orden relativo de las que tienen la misma fecha
-    todasLasReflexiones.sort((a, b) => {
+    // Ordenar por fecha descendente (más reciente primero)
+    reflexiones.sort((a, b) => {
       const fechaA = new Date(a.fecha);
       const fechaB = new Date(b.fecha);
-      if (fechaA.getTime() === fechaB.getTime()) {
-        // Si tienen la misma fecha, mantener el orden original (índice en el array)
-        return 0;
-      }
       return fechaB - fechaA;
     });
     
-    res.json(todasLasReflexiones);
+    res.json(reflexiones);
   } catch (error) {
+    console.error('Error al obtener reflexiones:', error);
     res.status(500).json({ error: 'Error al leer los datos' });
   }
 });
@@ -131,7 +95,7 @@ app.options('/api/reflexiones/:id', (req, res) => {
   res.sendStatus(200);
 });
 
-// API: Editar reflexión del historial por ID
+// API: Editar reflexión por ID
 app.put('/api/reflexiones/:id', async (req, res) => {
   try {
     res.header('Access-Control-Allow-Origin', '*');
@@ -145,39 +109,28 @@ app.put('/api/reflexiones/:id', async (req, res) => {
       return res.status(400).json({ error: 'Título, párrafo y fecha son requeridos' });
     }
 
-    const data = await readData();
-    if (!data.historial) {
-      data.historial = [];
-    }
+    const reflexion = await Reflexion.findOneAndUpdate(
+      { id: id },
+      { 
+        titulo: titulo.trim(),
+        parrafo: parrafo.trim(),
+        fecha: nuevaFecha.trim()
+      },
+      { new: true, lean: true }
+    );
     
-    // Buscar la reflexión por ID
-    const index = data.historial.findIndex(r => r.id === id);
-    
-    if (index < 0) {
+    if (!reflexion) {
       return res.status(404).json({ error: 'Reflexión no encontrada' });
     }
     
-    // Actualizar la reflexión manteniendo el mismo ID
-    const reflexionActualizada = {
-      id: id, // Mantener el mismo ID
-      titulo: titulo.trim(),
-      parrafo: parrafo.trim(),
-      fecha: nuevaFecha.trim()
-    };
-    
-    data.historial[index] = reflexionActualizada;
-    
-    // Ordenar historial por fecha descendente
-    data.historial.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-    await saveData(data);
-    res.json({ success: true, reflexion: reflexionActualizada });
+    res.json({ success: true, reflexion });
   } catch (error) {
+    console.error('Error al editar reflexión:', error);
     res.status(500).json({ error: 'Error al editar los datos' });
   }
 });
 
-// API: Eliminar reflexión del historial por ID
+// API: Eliminar reflexión por ID
 app.delete('/api/reflexiones/:id', async (req, res) => {
   try {
     res.header('Access-Control-Allow-Origin', '*');
@@ -186,28 +139,22 @@ app.delete('/api/reflexiones/:id', async (req, res) => {
     
     const { id } = req.params;
     
-    const data = await readData();
-    
-    // Eliminar solo la reflexión con el ID específico
-    const antes = data.historial.length;
-    data.historial = data.historial.filter(r => r.id !== id);
-    const despues = data.historial.length;
+    const result = await Reflexion.findOneAndDelete({ id: id });
 
-    if (antes === despues) {
+    if (!result) {
       return res.status(404).json({ error: 'Reflexión no encontrada' });
     }
 
-    await saveData(data);
     res.json({ success: true });
   } catch (error) {
+    console.error('Error al eliminar reflexión:', error);
     res.status(500).json({ error: 'Error al eliminar los datos' });
   }
 });
 
-// API: Guardar nueva reflexión (agregar al historial directamente)
+// API: Guardar nueva reflexión
 app.post('/api/reflexiones', async (req, res) => {
   try {
-    // Headers CORS explícitos
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
@@ -218,46 +165,42 @@ app.post('/api/reflexiones', async (req, res) => {
       return res.status(400).json({ error: 'Título, párrafo y fecha son requeridos' });
     }
 
-    const data = await readData();
-    if (!data.historial) {
-      data.historial = [];
-    }
-    
-    const nuevaReflexion = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9), // ID único
+    const nuevaReflexion = new Reflexion({
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       titulo: titulo.trim(),
       parrafo: parrafo.trim(),
       fecha: fecha.trim()
-    };
+    });
 
-    // Agregar al historial (permitir múltiples reflexiones con la misma fecha)
-    data.historial.unshift(nuevaReflexion); // Agregar al inicio
-
-    await saveData(data);
-    res.json({ success: true, reflexion: nuevaReflexion });
+    await nuevaReflexion.save();
+    res.json({ success: true, reflexion: nuevaReflexion.toObject() });
   } catch (error) {
+    console.error('Error al guardar reflexión:', error);
     res.status(500).json({ error: 'Error al guardar los datos' });
   }
 });
 
-// Contraseña del admin (mejor moverla a variable de entorno en producción)
+// Contraseña del admin
 const ADMIN_PASSWORD = 'jsdeadmin2025';
 
-// Verificar sesión admin (token simple en memoria - en producción usar mejor sistema de sesiones)
+// Verificar sesión admin (token simple en memoria)
 const adminSessions = new Set();
 
 // Configuración SMTP para newsletter
 const SMTP_CONFIG = {
   host: 'smtp.gmail.com',
   port: 587,
-  secure: false, // true para 465, false para otros puertos
+  secure: false,
   auth: {
     user: 'developjuansebastian@gmail.com',
-    pass: 'iyuzpzpctykkofd' // Contraseña de aplicación Gmail
+    pass: 'iyuzpzpctykkofd'
   }
 };
 
-// Endpoint para login del admin
+// Configuración de email - Usar Resend (recomendado para Railway)
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_EMAIL_FROM = process.env.RESEND_EMAIL_FROM || 'onboarding@resend.dev';
+
 // ============ NEWSLETTER ENDPOINTS ============
 
 // Suscribirse al newsletter
@@ -279,29 +222,28 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
       return res.status(400).json({ error: 'El formato del correo electrónico no es válido' });
     }
     
-    const data = await readData();
-    if (!data.newsletter) {
-      data.newsletter = { emails: [] };
-    }
+    const emailNormalized = email.trim().toLowerCase();
     
     // Verificar si el email ya existe
-    const emailNormalized = email.trim().toLowerCase();
-    const existe = data.newsletter.emails.some(e => e.email.toLowerCase() === emailNormalized);
+    const existe = await Email.findOne({ email: emailNormalized });
     
     if (existe) {
       return res.status(400).json({ error: 'Este correo ya está suscrito' });
     }
     
-    // Agregar email con fecha de suscripción
-    data.newsletter.emails.push({
-      email: email.trim(),
+    // Crear nuevo email
+    const nuevoEmail = new Email({
+      email: emailNormalized,
       fecha: new Date().toISOString().split('T')[0]
     });
     
-    await saveData(data);
+    await nuevoEmail.save();
     res.json({ success: true, message: 'Suscripción exitosa' });
   } catch (error) {
     console.error('Error al suscribirse:', error);
+    if (error.code === 11000) {
+      return res.status(400).json({ error: 'Este correo ya está suscrito' });
+    }
     res.status(500).json({ error: 'Error al procesar la suscripción' });
   }
 });
@@ -313,7 +255,6 @@ app.get('/api/newsletter/emails', async (req, res) => {
     res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
-    // Obtener token del header Authorization (puede venir con o sin "Bearer ")
     const authHeader = req.headers.authorization || req.headers['authorization'];
     const token = authHeader?.replace('Bearer ', '') || authHeader;
     
@@ -321,15 +262,7 @@ app.get('/api/newsletter/emails', async (req, res) => {
       return res.status(401).json({ error: 'No autorizado' });
     }
     
-    const data = await readData();
-    let emails = data.newsletter?.emails || [];
-    
-    // Ordenar por fecha descendente (más reciente primero)
-    emails = emails.sort((a, b) => {
-      const fechaA = new Date(a.fecha);
-      const fechaB = new Date(b.fecha);
-      return fechaB - fechaA; // Orden descendente (más reciente primero)
-    });
+    const emails = await Email.find({}).sort({ fecha: -1 }).lean();
     
     res.json({ success: true, emails });
   } catch (error) {
@@ -345,7 +278,6 @@ app.delete('/api/newsletter/emails/:email', async (req, res) => {
     res.header('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
-    // Obtener token del header Authorization
     const authHeader = req.headers.authorization || req.headers['authorization'];
     const token = authHeader?.replace('Bearer ', '') || authHeader;
     
@@ -353,28 +285,18 @@ app.delete('/api/newsletter/emails/:email', async (req, res) => {
       return res.status(401).json({ error: 'No autorizado' });
     }
     
-    const emailToDelete = decodeURIComponent(req.params.email);
+    const emailToDelete = decodeURIComponent(req.params.email).toLowerCase();
     
     if (!emailToDelete) {
       return res.status(400).json({ error: 'El correo es requerido' });
     }
     
-    const data = await readData();
-    if (!data.newsletter) {
-      data.newsletter = { emails: [] };
-    }
+    const result = await Email.findOneAndDelete({ email: emailToDelete });
     
-    // Buscar y eliminar el email
-    const initialLength = data.newsletter.emails.length;
-    data.newsletter.emails = data.newsletter.emails.filter(
-      e => e.email.toLowerCase() !== emailToDelete.toLowerCase()
-    );
-    
-    if (data.newsletter.emails.length === initialLength) {
+    if (!result) {
       return res.status(404).json({ error: 'Correo no encontrado' });
     }
     
-    await saveData(data);
     res.json({ success: true, message: 'Correo eliminado exitosamente' });
   } catch (error) {
     console.error('Error al eliminar correo:', error);
@@ -389,7 +311,6 @@ app.post('/api/newsletter/send', async (req, res) => {
     res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
-    // Obtener token del header Authorization (puede venir con o sin "Bearer ")
     const authHeader = req.headers.authorization || req.headers['authorization'];
     const token = authHeader?.replace('Bearer ', '') || authHeader;
     
@@ -410,8 +331,8 @@ app.post('/api/newsletter/send', async (req, res) => {
       return res.status(400).json({ error: 'El asunto y mensaje son requeridos' });
     }
     
-    const data = await readData();
-    const emails = data.newsletter?.emails || [];
+    const emailsData = await Email.find({}).lean();
+    const emails = emailsData.map(e => e.email);
     
     if (emails.length === 0) {
       return res.status(400).json({ error: 'No hay suscriptores para enviar' });
@@ -421,52 +342,79 @@ app.post('/api/newsletter/send', async (req, res) => {
     console.log('Asunto:', asunto);
     console.log('Mensaje (primeros 50 chars):', mensaje.substring(0, 50));
     
-    // Configurar transporter de nodemailer
-    const transporter = nodemailer.createTransport({
-      host: SMTP_CONFIG.host,
-      port: SMTP_CONFIG.port,
-      secure: SMTP_CONFIG.secure,
-      auth: SMTP_CONFIG.auth,
-      connectionTimeout: 30000, // 30 segundos timeout para conexión
-      greetingTimeout: 30000, // 30 segundos timeout para saludo
-      socketTimeout: 30000, // 30 segundos timeout para socket
-      pool: true, // Usar pool de conexiones
-      maxConnections: 1,
-      maxMessages: 3
-    });
-    
-    // Enviar correos a todos los suscriptores (sin verificar conexión primero para evitar timeout)
-    const destinatarios = emails.map(e => e.email);
+    const destinatarios = emails;
     const resultados = [];
     
     console.log(`Iniciando envío a ${destinatarios.length} destinatarios...`);
     
-    // Enviar correos con timeout individual para evitar que se quede colgado
-    for (let i = 0; i < destinatarios.length; i++) {
-      const email = destinatarios[i];
-      try {
-        console.log(`Enviando correo ${i + 1}/${destinatarios.length} a ${email}...`);
-        
-        // Crear una promesa con timeout para evitar que se quede colgado
-        const sendPromise = transporter.sendMail({
-          from: SMTP_CONFIG.auth.user,
-          to: email,
-          subject: asunto,
-          text: mensaje,
-          html: mensaje.replace(/\n/g, '<br>')
-        });
-        
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout al enviar correo (30 segundos)')), 30000)
-        );
-        
-        await Promise.race([sendPromise, timeoutPromise]);
-        
-        console.log(`✓ Correo enviado exitosamente a ${email}`);
-        resultados.push({ email, success: true });
-      } catch (error) {
-        console.error(`✗ Error al enviar a ${email}:`, error.message);
-        resultados.push({ email, success: false, error: error.message });
+    // Usar Resend si está configurado
+    if (RESEND_API_KEY) {
+      console.log('Usando Resend para enviar correos...');
+      const { Resend } = require('resend');
+      const resend = new Resend(RESEND_API_KEY);
+      
+      for (let i = 0; i < destinatarios.length; i++) {
+        const email = destinatarios[i];
+        try {
+          console.log(`Enviando correo ${i + 1}/${destinatarios.length} a ${email}...`);
+          
+          const { data, error } = await resend.emails.send({
+            from: RESEND_EMAIL_FROM,
+            to: email,
+            subject: asunto,
+            html: mensaje.replace(/\n/g, '<br>'),
+            text: mensaje
+          });
+          
+          if (error) {
+            throw new Error(error.message || 'Error desconocido de Resend');
+          }
+          
+          console.log(`✓ Correo enviado exitosamente a ${email}`);
+          resultados.push({ email, success: true });
+        } catch (error) {
+          console.error(`✗ Error al enviar a ${email}:`, error.message);
+          resultados.push({ email, success: false, error: error.message });
+        }
+      }
+    } else {
+      // Fallback a Gmail SMTP
+      console.log('⚠️  RESEND_API_KEY no configurada, usando Gmail SMTP (puede tener problemas en Railway)...');
+      const transporter = nodemailer.createTransport({
+        host: SMTP_CONFIG.host,
+        port: SMTP_CONFIG.port,
+        secure: SMTP_CONFIG.secure,
+        auth: SMTP_CONFIG.auth,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000
+      });
+      
+      for (let i = 0; i < destinatarios.length; i++) {
+        const email = destinatarios[i];
+        try {
+          console.log(`Enviando correo ${i + 1}/${destinatarios.length} a ${email}...`);
+          
+          const sendPromise = transporter.sendMail({
+            from: SMTP_CONFIG.auth.user,
+            to: email,
+            subject: asunto,
+            text: mensaje,
+            html: mensaje.replace(/\n/g, '<br>')
+          });
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout al enviar correo (15 segundos)')), 15000)
+          );
+          
+          await Promise.race([sendPromise, timeoutPromise]);
+          
+          console.log(`✓ Correo enviado exitosamente a ${email}`);
+          resultados.push({ email, success: true });
+        } catch (error) {
+          console.error(`✗ Error al enviar a ${email}:`, error.message);
+          resultados.push({ email, success: false, error: error.message });
+        }
       }
     }
     
@@ -503,11 +451,9 @@ app.post('/admin/login', (req, res) => {
     const { password } = req.body;
     
     if (password === ADMIN_PASSWORD) {
-      // Generar token simple
       const token = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       adminSessions.add(token);
       
-      // Token expira después de 24 horas (en producción usar mejor sistema)
       setTimeout(() => {
         adminSessions.delete(token);
       }, 24 * 60 * 60 * 1000);
@@ -537,273 +483,26 @@ app.get('/admin/verify', (req, res) => {
   }
 });
 
-// Panel admin - HTML mejorado con historial
+// Panel admin
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-panel.html'));
 });
 
-// Panel admin - HTML anterior (por si acaso)
-app.get('/admin-old', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Admin - Reflexión del Día</title>
-      <style>
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-        
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-        }
-        
-        .container {
-          background: white;
-          border-radius: 12px;
-          padding: 40px;
-          max-width: 600px;
-          width: 100%;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-        
-        h1 {
-          color: #333;
-          margin-bottom: 10px;
-          font-size: 28px;
-        }
-        
-        .subtitle {
-          color: #666;
-          margin-bottom: 30px;
-          font-size: 14px;
-        }
-        
-        .form-group {
-          margin-bottom: 20px;
-        }
-        
-        label {
-          display: block;
-          color: #333;
-          font-weight: 600;
-          margin-bottom: 8px;
-          font-size: 14px;
-        }
-        
-        input[type="text"],
-        textarea {
-          width: 100%;
-          padding: 12px;
-          border: 2px solid #e0e0e0;
-          border-radius: 8px;
-          font-size: 14px;
-          font-family: inherit;
-          transition: border-color 0.3s;
-        }
-        
-        input[type="text"]:focus,
-        textarea:focus {
-          outline: none;
-          border-color: #667eea;
-        }
-        
-        textarea {
-          min-height: 150px;
-          resize: vertical;
-        }
-        
-        button {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          padding: 14px 28px;
-          border-radius: 8px;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-          width: 100%;
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
-        
-        button:active {
-          transform: translateY(0);
-        }
-        
-        .message {
-          margin-top: 20px;
-          padding: 12px;
-          border-radius: 8px;
-          display: none;
-        }
-        
-        .message.success {
-          background: #d4edda;
-          color: #155724;
-          border: 1px solid #c3e6cb;
-          display: block;
-        }
-        
-        .message.error {
-          background: #f8d7da;
-          color: #721c24;
-          border: 1px solid #f5c6cb;
-          display: block;
-        }
-        
-        .current {
-          margin-top: 30px;
-          padding: 20px;
-          background: #f8f9fa;
-          border-radius: 8px;
-          border-left: 4px solid #667eea;
-        }
-        
-        .current h2 {
-          font-size: 16px;
-          color: #333;
-          margin-bottom: 10px;
-        }
-        
-        .current p {
-          color: #666;
-          font-size: 14px;
-          line-height: 1.6;
-        }
-        
-        .current strong {
-          color: #333;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h1>📝 Reflexión del Día</h1>
-        <p class="subtitle">Agrega el título y párrafo de la reflexión diaria</p>
-        
-        <form id="reflexionForm">
-          <div class="form-group">
-            <label for="titulo">Título</label>
-            <input type="text" id="titulo" name="titulo" required placeholder="Ej: El lenguaje es un arma cargada de intenciones">
-          </div>
-          
-          <div class="form-group">
-            <label for="parrafo">Párrafo</label>
-            <textarea id="parrafo" name="parrafo" required placeholder="Escribe aquí el párrafo completo de la reflexión..."></textarea>
-          </div>
-          
-          <button type="submit">Guardar Reflexión</button>
-        </form>
-        
-        <div id="message" class="message"></div>
-        
-        <div class="current">
-          <h2>Reflexión actual:</h2>
-          <p><strong>Título:</strong> <span id="currentTitulo">Cargando...</span></p>
-          <p><strong>Párrafo:</strong> <span id="currentParrafo">Cargando...</span></p>
-          <p style="margin-top: 10px; font-size: 12px; color: #999;"><strong>Fecha:</strong> <span id="currentFecha">-</span></p>
-        </div>
-      </div>
-      
-      <script>
-        const form = document.getElementById('reflexionForm');
-        const message = document.getElementById('message');
-        
-        // Cargar reflexión actual
-        async function loadCurrent() {
-          try {
-            const response = await fetch('/api/reflexion-hoy');
-            const data = await response.json();
-            
-            document.getElementById('currentTitulo').textContent = data.titulo || '(Vacío)';
-            document.getElementById('currentParrafo').textContent = data.parrafo || '(Vacío)';
-            document.getElementById('currentFecha').textContent = data.fecha || '-';
-            
-            // Pre-llenar formulario
-            if (data.titulo) {
-              document.getElementById('titulo').value = data.titulo;
-            }
-            if (data.parrafo) {
-              document.getElementById('parrafo').value = data.parrafo;
-            }
-          } catch (error) {
-            console.error('Error al cargar:', error);
-          }
-        }
-        
-        // Enviar formulario
-        form.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          
-          const titulo = document.getElementById('titulo').value;
-          const parrafo = document.getElementById('parrafo').value;
-          
-          try {
-            const response = await fetch('/api/reflexion-hoy', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ titulo, parrafo })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-              message.className = 'message success';
-              message.textContent = '✅ Reflexión guardada exitosamente';
-              
-              // Actualizar vista actual
-              await loadCurrent();
-              
-              // Limpiar mensaje después de 3 segundos
-              setTimeout(() => {
-                message.className = 'message';
-              }, 3000);
-            } else {
-              message.className = 'message error';
-              message.textContent = '❌ Error: ' + (data.error || 'Error al guardar');
-            }
-          } catch (error) {
-            message.className = 'message error';
-            message.textContent = '❌ Error de conexión';
-          }
-        });
-        
-        // Cargar al inicio
-        loadCurrent();
-      </script>
-    </body>
-    </html>
-  `);
-});
-
 // Iniciar servidor
 async function startServer() {
-  await initDataFile();
-  
-  app.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
-    console.log(`Web: http://localhost:${PORT}/`);
-    console.log(`Panel admin: http://localhost:${PORT}/admin`);
-    console.log(`🔌 API: http://localhost:${PORT}/api/reflexion-hoy`);
-  });
+  try {
+    await connectMongoDB();
+    
+    app.listen(PORT, () => {
+      console.log(`Servidor corriendo en puerto ${PORT}`);
+      console.log(`Web: http://localhost:${PORT}/`);
+      console.log(`Panel admin: http://localhost:${PORT}/admin`);
+      console.log(`🔌 API: http://localhost:${PORT}/api/reflexiones`);
+    });
+  } catch (error) {
+    console.error('Error al iniciar servidor:', error);
+    process.exit(1);
+  }
 }
 
 startServer();
-
