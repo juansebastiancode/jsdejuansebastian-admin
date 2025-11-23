@@ -11,19 +11,12 @@ const PORT = process.env.PORT || 8080;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://developjuansebastian_db_user:AjRlHPRSQrM01mpA@proyectomongodb.ycpota1.mongodb.net/jsdejuansebastian?appName=ProyectoMongodb';
 
 // Modelos de Mongoose
-const reflexionSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  titulo: { type: String, required: true },
-  parrafo: { type: String, required: true },
-  fecha: { type: String, required: true }
-}, { timestamps: false });
-
 const emailSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
-  fecha: { type: String, required: true }
+  fecha: { type: String, required: true },
+  seleccionado: { type: Boolean, default: false }
 }, { timestamps: false });
 
-const Reflexion = mongoose.model('Reflexion', reflexionSchema, 'reflexiones');
 const Email = mongoose.model('Email', emailSchema, 'emails');
 
 // Middleware CORS - configurar antes de cualquier ruta
@@ -57,128 +50,6 @@ async function connectMongoDB() {
   }
 }
 
-// API: Obtener todas las reflexiones
-app.get('/api/reflexiones', async (req, res) => {
-  try {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    
-    const reflexiones = await Reflexion.find({}).lean();
-    
-    // Ordenar por fecha descendente (más reciente primero)
-    reflexiones.sort((a, b) => {
-      const fechaA = new Date(a.fecha);
-      const fechaB = new Date(b.fecha);
-      return fechaB - fechaA;
-    });
-    
-    res.json(reflexiones);
-  } catch (error) {
-    console.error('Error al obtener reflexiones:', error);
-    res.status(500).json({ error: 'Error al leer los datos' });
-  }
-});
-
-// Manejar preflight OPTIONS
-app.options('/api/reflexiones', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  res.sendStatus(200);
-});
-
-app.options('/api/reflexiones/:id', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  res.sendStatus(200);
-});
-
-// API: Editar reflexión por ID
-app.put('/api/reflexiones/:id', async (req, res) => {
-  try {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'PUT, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    
-    const { id } = req.params;
-    const { titulo, parrafo, fecha: nuevaFecha } = req.body;
-    
-    if (!titulo || !parrafo || !nuevaFecha) {
-      return res.status(400).json({ error: 'Título, párrafo y fecha son requeridos' });
-    }
-
-    const reflexion = await Reflexion.findOneAndUpdate(
-      { id: id },
-      { 
-        titulo: titulo.trim(),
-        parrafo: parrafo.trim(),
-        fecha: nuevaFecha.trim()
-      },
-      { new: true, lean: true }
-    );
-    
-    if (!reflexion) {
-      return res.status(404).json({ error: 'Reflexión no encontrada' });
-    }
-    
-    res.json({ success: true, reflexion });
-  } catch (error) {
-    console.error('Error al editar reflexión:', error);
-    res.status(500).json({ error: 'Error al editar los datos' });
-  }
-});
-
-// API: Eliminar reflexión por ID
-app.delete('/api/reflexiones/:id', async (req, res) => {
-  try {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    
-    const { id } = req.params;
-    
-    const result = await Reflexion.findOneAndDelete({ id: id });
-
-    if (!result) {
-      return res.status(404).json({ error: 'Reflexión no encontrada' });
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error al eliminar reflexión:', error);
-    res.status(500).json({ error: 'Error al eliminar los datos' });
-  }
-});
-
-// API: Guardar nueva reflexión
-app.post('/api/reflexiones', async (req, res) => {
-  try {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    
-    const { titulo, parrafo, fecha } = req.body;
-    
-    if (!titulo || !parrafo || !fecha) {
-      return res.status(400).json({ error: 'Título, párrafo y fecha son requeridos' });
-    }
-
-    const nuevaReflexion = new Reflexion({
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      titulo: titulo.trim(),
-      parrafo: parrafo.trim(),
-      fecha: fecha.trim()
-    });
-
-    await nuevaReflexion.save();
-    res.json({ success: true, reflexion: nuevaReflexion.toObject() });
-  } catch (error) {
-    console.error('Error al guardar reflexión:', error);
-    res.status(500).json({ error: 'Error al guardar los datos' });
-  }
-});
 
 // Contraseña del admin
 const ADMIN_PASSWORD = 'jsdeadmin2025';
@@ -271,6 +142,77 @@ app.get('/api/newsletter/emails', async (req, res) => {
   }
 });
 
+// Actualizar estado de selección de un email (solo admin)
+app.put('/api/newsletter/emails/:email/select', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'PUT, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const emailToUpdate = decodeURIComponent(req.params.email).toLowerCase();
+    const { seleccionado } = req.body;
+    
+    if (typeof seleccionado !== 'boolean') {
+      return res.status(400).json({ error: 'El campo seleccionado debe ser true o false' });
+    }
+    
+    const result = await Email.findOneAndUpdate(
+      { email: emailToUpdate },
+      { seleccionado: seleccionado },
+      { new: true, lean: true }
+    );
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Correo no encontrado' });
+    }
+    
+    res.json({ success: true, email: result });
+  } catch (error) {
+    console.error('Error al actualizar selección:', error);
+    res.status(500).json({ error: 'Error al actualizar la selección' });
+  }
+});
+
+// Marcar/desmarcar todos los emails (solo admin)
+app.put('/api/newsletter/emails/select-all', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'PUT, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const { seleccionado } = req.body;
+    
+    if (typeof seleccionado !== 'boolean') {
+      return res.status(400).json({ error: 'El campo seleccionado debe ser true o false' });
+    }
+    
+    const result = await Email.updateMany({}, { seleccionado: seleccionado });
+    
+    res.json({ 
+      success: true, 
+      message: `${result.modifiedCount} correos actualizados`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error al actualizar todos:', error);
+    res.status(500).json({ error: 'Error al actualizar los correos' });
+  }
+});
+
 // Eliminar un correo del newsletter (solo admin)
 app.delete('/api/newsletter/emails/:email', async (req, res) => {
   try {
@@ -331,11 +273,12 @@ app.post('/api/newsletter/send', async (req, res) => {
       return res.status(400).json({ error: 'El asunto y mensaje son requeridos' });
     }
     
-    const emailsData = await Email.find({}).lean();
+    // Solo obtener emails seleccionados
+    const emailsData = await Email.find({ seleccionado: true }).lean();
     const emails = emailsData.map(e => e.email);
     
     if (emails.length === 0) {
-      return res.status(400).json({ error: 'No hay suscriptores para enviar' });
+      return res.status(400).json({ error: 'No hay suscriptores seleccionados para enviar' });
     }
     
     console.log(`Preparando enviar correo a ${emails.length} suscriptores...`);
@@ -497,7 +440,6 @@ async function startServer() {
       console.log(`Servidor corriendo en puerto ${PORT}`);
       console.log(`Web: http://localhost:${PORT}/`);
       console.log(`Panel admin: http://localhost:${PORT}/admin`);
-      console.log(`🔌 API: http://localhost:${PORT}/api/reflexiones`);
     });
   } catch (error) {
     console.error('Error al iniciar servidor:', error);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Reflexiones</title>
+  <title>Admin - Newsletter</title>
   <style>
     * {
       margin: 0;
@@ -37,19 +37,6 @@
       color: #666;
       margin-bottom: 30px;
       font-size: 14px;
-    }
-    
-    .nueva-reflexion {
-      background: #f8f9fa;
-      padding: 25px;
-      border-radius: 8px;
-      margin-bottom: 30px;
-    }
-    
-    .nueva-reflexion h2 {
-      font-size: 18px;
-      color: #333;
-      margin-bottom: 20px;
     }
     
     .form-group {
@@ -135,16 +122,25 @@
       margin-right: 0;
     }
     
-    .reflexion-edit-form .form-actions {
-      display: flex !important;
-      justify-content: flex-end !important;
-      align-items: center !important;
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 300px;
+      margin-left: auto;
+    }
+    
+    .btn-group button {
+      width: 100%;
     }
     
     button.btn-secondary {
       background: transparent;
       border: 1px solid #666;
       color: #333;
+      padding: 10px 20px;
+      font-size: 14px;
     }
     
     button.btn-secondary:hover {
@@ -156,6 +152,8 @@
       background: transparent;
       border: 1px solid #dc3545;
       color: #dc3545;
+      padding: 8px 16px;
+      font-size: 13px;
     }
     
     button.btn-danger:hover {
@@ -163,9 +161,56 @@
       color: white;
     }
     
-    button.btn-small {
-      padding: 8px 16px;
+    .btn-primary {
+      background: #000000;
+      color: white;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .email-item {
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .email-item-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .email-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .email-item-email {
+      color: #333;
+      font-weight: 500;
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+    
+    .email-item-fecha {
+      color: #999;
       font-size: 12px;
+    }
+    
+    .email-item-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
     }
     
     .message {
@@ -189,99 +234,6 @@
       display: block;
     }
     
-    .historial {
-      margin-top: 40px;
-    }
-    
-    .historial h2 {
-      font-size: 20px;
-      color: #333;
-      margin-bottom: 20px;
-    }
-    
-    .reflexion-item {
-      background: #f8f9fa;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      position: relative;
-    }
-    
-    .reflexion-item.editing {
-    }
-    
-    .reflexion-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 10px;
-    }
-    
-    .reflexion-fecha {
-      font-size: 12px;
-      color: #666;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-    
-    .reflexion-actions {
-      display: flex;
-      gap: 8px;
-    }
-    
-    .reflexion-titulo {
-      font-size: 16px;
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 10px;
-    }
-    
-    .reflexion-parrafo {
-      font-size: 14px;
-      color: #666;
-      line-height: 1.6;
-      margin-bottom: 15px;
-    }
-    
-    .reflexion-edit-form {
-      display: none;
-    }
-    
-    .reflexion-item.editing .reflexion-edit-form {
-      display: block;
-    }
-    
-    .reflexion-item.editing .reflexion-content {
-      display: none;
-    }
-    
-    .form-actions {
-      display: flex;
-      flex-direction: row;
-      gap: 10px;
-      margin-top: 15px;
-      justify-content: flex-end;
-      align-items: center;
-      width: 100%;
-    }
-    
-    .form-actions button {
-      margin-left: 0 !important;
-      margin-right: 0 !important;
-      display: inline-block;
-      flex-shrink: 0;
-    }
-    
-    .reflexion-edit-form {
-      width: 100%;
-    }
-    
-    .reflexion-edit-form .form-actions {
-      display: flex !important;
-      justify-content: flex-end !important;
-      flex-direction: row !important;
-    }
-    
     /* Estilos responsive para móvil */
     @media (max-width: 768px) {
       body {
@@ -303,14 +255,8 @@
         margin-bottom: 20px;
       }
       
-      .nueva-reflexion {
-        padding: 20px 15px;
-        margin-bottom: 20px;
-      }
-      
-      .nueva-reflexion h2 {
-        font-size: 16px;
-        margin-bottom: 15px;
+      .newsletter-section {
+        padding: 20px 15px !important;
       }
       
       .form-group {
@@ -335,6 +281,21 @@
         font-size: 16px; /* Evita zoom en iOS */
       }
       
+      .btn-group {
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        max-width: 100%;
+      }
+      
+      .btn-group button {
+        width: 100%;
+        min-height: 48px;
+        font-size: 15px;
+        padding: 14px 16px;
+        margin: 0 !important;
+      }
+      
       button {
         padding: 14px 24px;
         font-size: 16px;
@@ -348,154 +309,53 @@
         padding: 10px 18px;
         font-size: 14px;
         min-height: 44px;
+        width: auto;
+        margin: 0;
       }
       
-      .btn-small {
-        padding: 10px 16px;
-        font-size: 13px;
-        min-height: 40px;
-      }
-      
-      .form-actions {
+      .email-item {
         flex-direction: column;
-        gap: 10px;
-        margin-top: 20px;
-        width: 100%;
-      }
-      
-      .form-actions button {
-        width: 100% !important;
-        margin: 0 !important;
-        min-height: 48px;
-        font-size: 16px;
-        padding: 14px 24px;
-      }
-      
-      .reflexion-edit-form {
-        display: none !important;
-        width: 100% !important;
-        padding: 0;
-        margin-top: 15px;
-      }
-      
-      .reflexion-item.editing .reflexion-edit-form {
-        display: block !important;
-      }
-      
-      .reflexion-item.editing .reflexion-content {
-        display: none !important;
-      }
-      
-      .reflexion-edit-form form {
-        width: 100%;
-      }
-      
-      .reflexion-edit-form .form-actions {
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: flex-end !important;
-        align-items: stretch !important;
-        gap: 10px !important;
-        width: 100% !important;
-        margin-top: 15px !important;
-      }
-      
-      .reflexion-edit-form .form-actions button {
-        width: 100% !important;
-        margin: 0 !important;
-        min-height: 48px !important;
-        padding: 14px 24px !important;
-        font-size: 16px !important;
-        display: block !important;
-      }
-      
-      .reflexion-edit-form .form-group {
-        margin-bottom: 18px;
-      }
-      
-      .reflexion-edit-form input,
-      .reflexion-edit-form textarea {
-        font-size: 16px !important;
-        padding: 14px !important;
-        width: 100%;
-      }
-      
-      .reflexion-item {
+        align-items: stretch;
+        gap: 12px;
         padding: 15px;
-        margin-bottom: 12px;
       }
       
-      .reflexion-header {
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-start;
+      .email-item-content {
+        width: 100%;
       }
       
-      .reflexion-actions {
+      .email-item-actions {
         width: 100%;
         justify-content: flex-end;
       }
       
-      .reflexion-actions button {
-        flex: 1;
-        max-width: 120px;
+      .email-item-content input[type="checkbox"] {
+        width: 24px !important;
+        height: 24px !important;
       }
       
-      .reflexion-titulo {
+      .email-item-actions button {
+        min-height: 44px;
+        padding: 12px 20px;
         font-size: 15px;
-        margin-bottom: 8px;
+        width: auto;
+        margin: 0;
+        flex: 1;
+        max-width: 150px;
       }
       
-      .reflexion-parrafo {
-        font-size: 13px;
-        line-height: 1.6;
-        margin-bottom: 12px;
+      .newsletter-form form > div:last-child {
+        flex-direction: column;
       }
       
-      .reflexion-fecha {
-        font-size: 11px;
-      }
-      
-      .historial {
-        margin-top: 30px;
-      }
-      
-      .historial h2 {
-        font-size: 18px;
-        margin-bottom: 15px;
+      .newsletter-form button {
+        width: 100%;
+        margin-top: 0;
       }
       
       .message {
         font-size: 14px;
         padding: 10px;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      body {
-        padding: 5px;
-      }
-      
-      .container {
-        padding: 15px 12px;
-      }
-      
-      h1 {
-        font-size: 20px;
-      }
-      
-      .nueva-reflexion {
-        padding: 15px 12px;
-      }
-      
-      input[type="text"],
-      input[type="date"],
-      textarea {
-        padding: 12px;
-      }
-      
-      .reflexion-item {
-        padding: 12px;
       }
     }
   </style>
@@ -505,48 +365,15 @@
     <div style="display: flex; justify-content: flex-end; margin-bottom: 15px; margin-top: -10px;">
       <button onclick="cerrarSesion()" class="btn-salir">Salir</button>
     </div>
-    <h1>Admin - Reflexiones</h1>
-    <p class="subtitle">Gestiona todas tus reflexiones del historial</p>
-    
-    <!-- Formulario para nueva reflexión -->
-    <div class="nueva-reflexion">
-      <h2>Nueva Reflexión</h2>
-      <form id="nuevaReflexionForm">
-        <div class="form-group">
-          <label for="nuevaFecha">Fecha</label>
-          <input type="date" id="nuevaFecha" name="fecha" required>
-        </div>
-        <div class="form-group">
-          <label for="nuevoTitulo">Título</label>
-          <input type="text" id="nuevoTitulo" name="titulo" required placeholder="Ej: El lenguaje es un arma cargada de intenciones">
-        </div>
-        <div class="form-group">
-          <label for="nuevoParrafo">Párrafo</label>
-          <textarea id="nuevoParrafo" name="parrafo" required placeholder="Escribe aquí el párrafo completo..."></textarea>
-        </div>
-        <div style="display: flex; justify-content: flex-end;">
-          <button type="submit" class="btn-guardar-nueva">Guardar Nueva Reflexión</button>
-        </div>
-      </form>
-      <div id="nuevaMessage" class="message"></div>
-    </div>
+    <h1>Admin - Newsletter</h1>
+    <p class="subtitle">Gestiona tu newsletter y envía correos a los suscriptores</p>
     
     <!-- Sección Newsletter -->
     <div class="newsletter-section" style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 30px;">
-      <h2>Newsletter</h2>
-      <div style="margin-bottom: 20px;">
-        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
-          Total de suscriptores: <strong id="totalSuscriptores">0</strong>
-        </p>
-        <button onclick="cargarEmails()" class="btn-secondary" style="margin-right: 10px;">Ver Suscriptores</button>
-      </div>
+      <h2 style="font-size: 20px; color: #333; margin-bottom: 20px;">Newsletter</h2>
       
-      <div id="emailsList" style="display: none; max-height: 300px; overflow-y: auto; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e0e0e0;">
-        <p style="color: #666; font-size: 14px;">Cargando...</p>
-      </div>
-      
-      <div class="newsletter-form" style="display: none;" id="newsletterFormSection">
-        <h3 style="font-size: 16px; color: #333; margin-bottom: 15px;">Enviar Correo a Todos</h3>
+      <div class="newsletter-form" style="display: block; margin-bottom: 25px;" id="newsletterFormSection">
+        <h3 style="font-size: 16px; color: #333; margin-bottom: 15px;">Enviar Correo a Seleccionados</h3>
         <form id="enviarCorreoForm">
           <div class="form-group">
             <label for="correoAsunto">Asunto</label>
@@ -557,20 +384,28 @@
             <textarea id="correoMensaje" name="mensaje" required placeholder="Escribe aquí el mensaje del correo..." style="min-height: 150px;"></textarea>
           </div>
           <div style="display: flex; justify-content: flex-end;">
-            <button type="submit" class="btn-guardar-nueva">Enviar Correo</button>
+            <button type="submit" class="btn-primary">Enviar Correo</button>
           </div>
         </form>
         <div id="correoMessage" class="message"></div>
       </div>
-    </div>
-    
-    <!-- Lista del historial -->
-    <div class="historial">
-      <h2>Historial de Reflexiones</h2>
-      <div id="historialList">
-        <p>Cargando...</p>
+      
+      <div style="margin-bottom: 20px;">
+        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+          Total de suscriptores: <strong id="totalSuscriptores">0</strong> | 
+          Seleccionados: <strong id="totalSeleccionados">0</strong>
+        </p>
+        <div class="btn-group">
+          <button onclick="seleccionarTodos()" class="btn-secondary">Marcar Todos</button>
+          <button onclick="deseleccionarTodos()" class="btn-secondary">Desmarcar Todos</button>
+        </div>
+      </div>
+      
+      <div id="emailsList" style="max-height: 400px; overflow-y: auto; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e0e0e0;">
+        <p style="color: #666; font-size: 14px;">Cargando...</p>
       </div>
     </div>
+    
   </div>
   
   <script>
@@ -643,38 +478,6 @@
       }
     }
     
-    let reflexionesData = [];
-    let fechaEditando = null;
-    
-    // Cargar historial
-    async function cargarHistorial() {
-      try {
-        console.log('Intentando cargar historial...');
-        const response = await fetch('/api/reflexiones');
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error en respuesta:', response.status, errorText);
-          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-        }
-        
-        reflexionesData = await response.json();
-        console.log('Historial cargado:', reflexionesData);
-        
-        if (reflexionesData && Array.isArray(reflexionesData)) {
-          mostrarHistorial();
-        } else {
-          throw new Error('El historial no es un array válido');
-        }
-      } catch (error) {
-        console.error('Error al cargar historial:', error);
-        const listElement = document.getElementById('historialList');
-        if (listElement) {
-          listElement.innerHTML = '<p style="color: #dc3545;">Error al cargar el historial: ' + error.message + '</p>';
-        }
-      }
-    }
-    
     // Inicializar cuando la contraseña sea correcta
     async function inicializar() {
       try {
@@ -685,20 +488,11 @@
           return;
         }
         
-        // Si la contraseña es correcta, inicializar todo
-        const fechaInput = document.getElementById('nuevaFecha');
-        if (fechaInput) {
-          fechaInput.value = new Date().toISOString().split('T')[0];
-        }
-        
-        await cargarHistorial();
+        // Si la contraseña es correcta, inicializar newsletter
         await cargarTotalSuscriptores();
+        await cargarEmails();
       } catch (error) {
         console.error('Error en inicialización:', error);
-        const listElement = document.getElementById('historialList');
-        if (listElement) {
-          listElement.innerHTML = '<p style="color: #dc3545;">Error al inicializar: ' + error.message + '</p>';
-        }
       }
     }
     
@@ -739,7 +533,8 @@
     async function cargarEmails() {
       try {
         const emailsList = document.getElementById('emailsList');
-        emailsList.style.display = 'block';
+        if (!emailsList) return;
+        
         emailsList.innerHTML = '<p style="color: #666; font-size: 14px;">Cargando...</p>';
         
         const response = await fetch('/api/newsletter/emails', {
@@ -757,27 +552,44 @@
           if (data.emails.length === 0) {
             emailsList.innerHTML = '<p style="color: #666; font-size: 14px;">No hay suscriptores aún.</p>';
           } else {
-            let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
-            data.emails.forEach((item, index) => {
+            // Ordenar: primero los seleccionados, luego los no seleccionados
+            const emailsOrdenados = [...data.emails].sort((a, b) => {
+              if (a.seleccionado && !b.seleccionado) return -1;
+              if (!a.seleccionado && b.seleccionado) return 1;
+              return 0;
+            });
+            
+            let html = '';
+            let seleccionadosCount = 0;
+            emailsOrdenados.forEach((item, index) => {
+              if (item.seleccionado) seleccionadosCount++;
               const emailEscaped = item.email.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+              const checked = item.seleccionado ? 'checked' : '';
               html += `
-                <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
-                  <div style="flex: 1;">
-                    <div style="color: #333; font-weight: 500; margin-bottom: 5px;">${item.email}</div>
-                    <div style="color: #999; font-size: 12px;">Suscrito el: ${item.fecha}</div>
+                <div class="email-item">
+                  <div class="email-item-content">
+                    <input type="checkbox" id="checkbox-${index}" ${checked} onchange="toggleSeleccionar('${emailEscaped}', this.checked)" style="width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;">
+                    <div class="email-item-info">
+                      <div class="email-item-email">${item.email}</div>
+                      <div class="email-item-fecha">Suscrito el: ${item.fecha}</div>
+                    </div>
                   </div>
-                  <button onclick="eliminarEmail('${emailEscaped}')" class="btn-danger" style="padding: 8px 16px; font-size: 14px; margin-left: 10px; white-space: nowrap;">Eliminar</button>
+                  <div class="email-item-actions">
+                    <button onclick="eliminarEmail('${emailEscaped}')" class="btn-danger">Eliminar</button>
+                  </div>
                 </div>
               `;
             });
-            html += '</div>';
             emailsList.innerHTML = html;
+            
+            // Actualizar contador de seleccionados
+            const totalSeleccionados = document.getElementById('totalSeleccionados');
+            if (totalSeleccionados) {
+              totalSeleccionados.textContent = seleccionadosCount;
+            }
           }
           
-          // Mostrar formulario de envío si hay emails
-          if (data.emails.length > 0) {
-            document.getElementById('newsletterFormSection').style.display = 'block';
-          }
+          // El formulario siempre está visible, no necesitamos mostrarlo/ocultarlo
         } else {
           emailsList.innerHTML = '<p style="color: #dc3545; font-size: 14px;">Error al cargar los emails</p>';
         }
@@ -785,6 +597,83 @@
         console.error('Error al cargar emails:', error);
         const emailsList = document.getElementById('emailsList');
         emailsList.innerHTML = '<p style="color: #dc3545; font-size: 14px;">Error de conexión</p>';
+      }
+    }
+    
+    // Toggle selección de un email
+    async function toggleSeleccionar(email, seleccionado) {
+      try {
+        const response = await fetch(`/api/newsletter/emails/${encodeURIComponent(email)}/select`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': adminToken
+          },
+          body: JSON.stringify({ seleccionado: seleccionado })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          // Actualizar contador
+          await cargarEmails();
+        } else {
+          console.error('Error al actualizar selección:', data.error);
+          alert('Error al actualizar la selección');
+        }
+      } catch (error) {
+        console.error('Error al actualizar selección:', error);
+        alert('Error de conexión al actualizar la selección');
+      }
+    }
+    
+    // Seleccionar todos los emails
+    async function seleccionarTodos() {
+      try {
+        const response = await fetch('/api/newsletter/emails/select-all', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': adminToken
+          },
+          body: JSON.stringify({ seleccionado: true })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          await cargarEmails();
+        } else {
+          alert('Error: ' + (data.error || 'Error al seleccionar todos'));
+        }
+      } catch (error) {
+        console.error('Error al seleccionar todos:', error);
+        alert('Error de conexión');
+      }
+    }
+    
+    // Deseleccionar todos los emails
+    async function deseleccionarTodos() {
+      try {
+        const response = await fetch('/api/newsletter/emails/select-all', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': adminToken
+          },
+          body: JSON.stringify({ seleccionado: false })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          await cargarEmails();
+        } else {
+          alert('Error: ' + (data.error || 'Error al deseleccionar todos'));
+        }
+      } catch (error) {
+        console.error('Error al deseleccionar todos:', error);
+        alert('Error de conexión');
       }
     }
     
@@ -925,171 +814,16 @@
     // Verificar contraseña e inicializar al cargar la página
     inicializar();
     
-    // Mostrar historial
-    function mostrarHistorial() {
-      const list = document.getElementById('historialList');
-      
-      if (!list) {
-        console.error('Elemento historialList no encontrado');
-        return;
-      }
-      
-      if (reflexionesData.length === 0) {
-        list.innerHTML = '<p style="color: #666;">No hay reflexiones en el historial</p>';
-        return;
-      }
-      
-      list.innerHTML = reflexionesData.map(reflexion => {
-        // Si la reflexión no tiene ID, generarlo (para compatibilidad con datos antiguos)
-        const reflexionId = reflexion.id || Date.now().toString() + Math.random().toString(36).substr(2, 9);
-        return `
-        <div class="reflexion-item" data-id="${reflexionId}">
-          <div class="reflexion-content">
-            <div class="reflexion-header">
-              <span class="reflexion-fecha">${reflexion.fecha}</span>
-              <div class="reflexion-actions">
-                <button class="btn-secondary btn-small" onclick="editarReflexion('${reflexionId}')">Editar</button>
-                <button class="btn-danger btn-small" onclick="eliminarReflexion('${reflexionId}')">Eliminar</button>
-              </div>
-            </div>
-            <div class="reflexion-titulo">${reflexion.titulo}</div>
-            <div class="reflexion-parrafo">${reflexion.parrafo}</div>
-          </div>
-          <div class="reflexion-edit-form">
-            <form onsubmit="guardarEdicion(event, '${reflexionId}')">
-              <div class="form-group">
-                <label>Fecha</label>
-                <input type="date" id="editFecha_${reflexionId}" value="${reflexion.fecha}" required>
-              </div>
-              <div class="form-group">
-                <label>Título</label>
-                <input type="text" id="editTitulo_${reflexionId}" value="${reflexion.titulo}" required>
-              </div>
-              <div class="form-group">
-                <label>Párrafo</label>
-                <textarea id="editParrafo_${reflexionId}" required>${reflexion.parrafo}</textarea>
-              </div>
-              <div class="form-actions">
-                <button type="button" class="btn-secondary" onclick="cancelarEdicion('${reflexionId}')">Cancelar</button>
-                <button type="submit">Guardar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      `;
-      }).join('');
-    }
-    
-    // Editar reflexión
-    function editarReflexion(id) {
-      // Cerrar otras ediciones
-      document.querySelectorAll('.reflexion-item.editing').forEach(item => {
-        item.classList.remove('editing');
-      });
-      
-      const item = document.querySelector(`[data-id="${id}"]`);
-      if (item) {
-        item.classList.add('editing');
-        fechaEditando = id;
-      }
-    }
-    
-    // Cancelar edición
-    function cancelarEdicion(id) {
-      const item = document.querySelector(`[data-id="${id}"]`);
-      if (item) {
-        item.classList.remove('editing');
-      }
-      fechaEditando = null;
-    }
-    
-    // Guardar edición
-    async function guardarEdicion(event, id) {
-      event.preventDefault();
-      
-      const fecha = document.getElementById(`editFecha_${id}`).value;
-      const titulo = document.getElementById(`editTitulo_${id}`).value;
-      const parrafo = document.getElementById(`editParrafo_${id}`).value;
-      
-      try {
-        const response = await fetch(`/api/reflexiones/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ titulo, parrafo, fecha })
-        });
-        
-        if (response.ok) {
-          await cargarHistorial();
-          mostrarMensaje('nuevaMessage', 'Reflexión editada exitosamente', 'success');
-        } else {
-          const data = await response.json();
-          mostrarMensaje('nuevaMessage', 'Error: ' + (data.error || 'Error al editar'), 'error');
-        }
-      } catch (error) {
-        mostrarMensaje('nuevaMessage', 'Error de conexión', 'error');
-      }
-    }
-    
-    // Eliminar reflexión
-    async function eliminarReflexion(id) {
-      if (!confirm('¿Estás seguro de que quieres eliminar esta reflexión?')) {
-        return;
-      }
-      
-      try {
-        const response = await fetch(`/api/reflexiones/${id}`, {
-          method: 'DELETE'
-        });
-        
-        if (response.ok) {
-          await cargarHistorial();
-          mostrarMensaje('nuevaMessage', 'Reflexión eliminada exitosamente', 'success');
-        } else {
-          mostrarMensaje('nuevaMessage', 'Error al eliminar', 'error');
-        }
-      } catch (error) {
-        mostrarMensaje('nuevaMessage', 'Error de conexión', 'error');
-      }
-    }
-    
-    // Formulario nueva reflexión
-    document.getElementById('nuevaReflexionForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const fecha = document.getElementById('nuevaFecha').value;
-      const titulo = document.getElementById('nuevoTitulo').value;
-      const parrafo = document.getElementById('nuevoParrafo').value;
-      
-      try {
-        // Siempre agregar nueva reflexión, nunca reemplazar existentes
-        const response = await fetch('/api/reflexiones', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ titulo, parrafo, fecha })
-        });
-        
-        if (response.ok) {
-          document.getElementById('nuevaReflexionForm').reset();
-          document.getElementById('nuevaFecha').value = new Date().toISOString().split('T')[0];
-          await cargarHistorial();
-          mostrarMensaje('nuevaMessage', 'Reflexión guardada exitosamente', 'success');
-        } else {
-          const data = await response.json();
-          mostrarMensaje('nuevaMessage', 'Error: ' + (data.error || 'Error al guardar'), 'error');
-        }
-      } catch (error) {
-        mostrarMensaje('nuevaMessage', 'Error de conexión', 'error');
-      }
-    });
-    
     // Mostrar mensaje
     function mostrarMensaje(id, texto, tipo) {
       const msg = document.getElementById(id);
-      msg.className = `message ${tipo}`;
-      msg.textContent = texto;
-      setTimeout(() => {
-        msg.className = 'message';
-      }, 3000);
+      if (msg) {
+        msg.className = `message ${tipo}`;
+        msg.textContent = texto;
+        setTimeout(() => {
+          msg.className = 'message';
+        }, 3000);
+      }
     }
     
   </script>
