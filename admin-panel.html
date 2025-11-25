@@ -13,18 +13,19 @@
     
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: #000000;
+      background: #f7f7f7;
       min-height: 100vh;
-      padding: 20px;
+      padding: 20px 20px 100px;
     }
     
     .container {
       max-width: 1200px;
       margin: 0 auto;
-      background: white;
-      border-radius: 12px;
+      background: #ffffff;
+      border-radius: 16px;
       padding: 40px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 20px 70px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(0,0,0,0.05);
     }
     
     h1 {
@@ -133,6 +134,27 @@
     
     .btn-group button {
       width: 100%;
+    }
+    
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .controls-row .btn-group {
+      margin-left: 0;
+    }
+    
+    .stats-text {
+      color: #444;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 0;
+      margin-left: auto;
+      text-align: right;
     }
     
     button.btn-secondary {
@@ -353,6 +375,25 @@
         margin-top: 0;
       }
       
+      .controls-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      
+      .controls-row .btn-group {
+        width: 100%;
+        max-width: 100%;
+      }
+      
+      .stats-text {
+        order: -1;
+        width: 100%;
+        text-align: left;
+        margin-left: 0;
+        font-size: 15px;
+      }
+      
       .message {
         font-size: 14px;
         padding: 10px;
@@ -369,11 +410,8 @@
     <p class="subtitle">Gestiona tu newsletter y envía correos a los suscriptores</p>
     
     <!-- Sección Newsletter -->
-    <div class="newsletter-section" style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 30px;">
-      <h2 style="font-size: 20px; color: #333; margin-bottom: 20px;">Newsletter</h2>
-      
+    <div class="newsletter-section" style="background: #ffffff; padding: 25px; border-radius: 12px; margin-bottom: 30px;">
       <div class="newsletter-form" style="display: block; margin-bottom: 25px;" id="newsletterFormSection">
-        <h3 style="font-size: 16px; color: #333; margin-bottom: 15px;">Enviar Correo a Seleccionados</h3>
         <form id="enviarCorreoForm">
           <div class="form-group">
             <label for="correoAsunto">Asunto</label>
@@ -390,18 +428,18 @@
         <div id="correoMessage" class="message"></div>
       </div>
       
-      <div style="margin-bottom: 20px;">
-        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
-          Total de suscriptores: <strong id="totalSuscriptores">0</strong> | 
-          Seleccionados: <strong id="totalSeleccionados">0</strong>
-        </p>
+      <div class="controls-row">
         <div class="btn-group">
           <button onclick="seleccionarTodos()" class="btn-secondary">Marcar Todos</button>
           <button onclick="deseleccionarTodos()" class="btn-secondary">Desmarcar Todos</button>
         </div>
+        <p class="stats-text">
+          Seleccionados: <strong id="totalSeleccionados">0</strong> | 
+          Total de suscriptores: <strong id="totalSuscriptores">0</strong>
+        </p>
       </div>
       
-      <div id="emailsList" style="max-height: 400px; overflow-y: auto; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e0e0e0;">
+      <div id="emailsList" style="max-height: 400px; overflow-y: auto; background: #ffffff; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e0e0e0;">
         <p style="color: #666; font-size: 14px;">Cargando...</p>
       </div>
     </div>
