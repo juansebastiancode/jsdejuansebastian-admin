@@ -734,7 +734,22 @@
           return;
         }
         
-        if (!confirm(`¿Estás seguro de que quieres enviar este correo a todos los suscriptores?`)) {
+        // Obtener número de emails seleccionados
+        const totalSeleccionados = document.getElementById('totalSeleccionados');
+        const numSeleccionados = totalSeleccionados ? parseInt(totalSeleccionados.textContent) || 0 : 0;
+        
+        if (numSeleccionados === 0) {
+          correoMessage.className = 'message error';
+          correoMessage.textContent = 'No hay emails seleccionados. Por favor, selecciona al menos uno.';
+          correoMessage.style.display = 'block';
+          return;
+        }
+        
+        const mensajeConfirmacion = numSeleccionados === 1 
+          ? `¿Estás seguro de que quieres enviar este correo a 1 suscriptor seleccionado?`
+          : `¿Estás seguro de que quieres enviar este correo a ${numSeleccionados} suscriptores seleccionados?`;
+        
+        if (!confirm(mensajeConfirmacion)) {
           return;
         }
         

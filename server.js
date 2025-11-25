@@ -1,8 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
+const { Resend } = require('resend');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -293,7 +295,6 @@ app.post('/api/newsletter/send', async (req, res) => {
     // Usar Resend si está configurado
     if (RESEND_API_KEY) {
       console.log('Usando Resend para enviar correos...');
-      const { Resend } = require('resend');
       const resend = new Resend(RESEND_API_KEY);
       
       for (let i = 0; i < destinatarios.length; i++) {
