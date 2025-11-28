@@ -291,8 +291,15 @@ app.post('/api/newsletter/send', async (req, res) => {
     
     const { asunto, mensaje, tipo } = req.body;
     
+    console.log('=== Tipo recibido:', tipo);
+    console.log('=== Body completo:', JSON.stringify(req.body));
+    
     if (!asunto || !mensaje) {
       return res.status(400).json({ error: 'El asunto y mensaje son requeridos' });
+    }
+    
+    if (!tipo || (tipo !== 'suscriptores' && tipo !== 'posibles')) {
+      return res.status(400).json({ error: 'El tipo debe ser "suscriptores" o "posibles"' });
     }
     
     let emails = [];
@@ -301,16 +308,11 @@ app.post('/api/newsletter/send', async (req, res) => {
     if (tipo === 'suscriptores') {
       const emailsData = await Email.find({ seleccionado: true }).lean();
       emails = emailsData.map(e => e.email);
+      console.log(`✓ Enviando SOLO a ${emails.length} suscriptores seleccionados`);
     } else if (tipo === 'posibles') {
       const posiblesClientesData = await PosibleCliente.find({ seleccionado: true }).lean();
       emails = posiblesClientesData.map(e => e.email);
-    } else {
-      // Si no se especifica tipo, enviar a ambos (comportamiento por defecto)
-      const emailsData = await Email.find({ seleccionado: true }).lean();
-      const emailsSuscriptores = emailsData.map(e => e.email);
-      const posiblesClientesData = await PosibleCliente.find({ seleccionado: true }).lean();
-      const emailsPosibles = posiblesClientesData.map(e => e.email);
-      emails = [...emailsSuscriptores, ...emailsPosibles];
+      console.log(`✓ Enviando SOLO a ${emails.length} posibles clientes seleccionados`);
     }
     
     if (emails.length === 0) {
@@ -336,12 +338,29 @@ app.post('/api/newsletter/send', async (req, res) => {
         try {
           console.log(`Enviando correo ${i + 1}/${destinatarios.length} a ${email}...`);
           
+          // Mejorar el formato HTML del mensaje para evitar spam
+          const mensajeHTML = `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              </head>
+              <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="white-space: pre-wrap;">${mensaje.replace(/\n/g, '<br>')}</div>
+              </body>
+            </html>
+          `;
+          
           const { data, error } = await resend.emails.send({
             from: RESEND_EMAIL_FROM,
             to: email,
             subject: asunto,
-            html: mensaje.replace(/\n/g, '<br>'),
-            text: mensaje
+            html: mensajeHTML,
+            text: mensaje,
+            headers: {
+              'X-Entity-Ref-ID': `newsletter-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+            }
           });
           
           if (error) {

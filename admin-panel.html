@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mailing - Juan Sebastian hola@jsdejuansebastian.com</title>
+  <title>Mailing - Juan Sebastian js@jsdejuansebastian.com</title>
   <style>
     * {
       margin: 0;
@@ -525,7 +525,7 @@
       <button onclick="cerrarSesion()" class="btn-salir">Salir</button>
     </div>
     <h1>Mailing - jsdejuansebastian.com</h1>
-    <p class="subtitle">Juan Sebastian hola@jsdejuansebastian.com</p>
+    <p class="subtitle">Juan Sebastian js@jsdejuansebastian.com</p>
     
     <!-- Sección Newsletter -->
     <div class="newsletter-section" style="background: #ffffff; padding: 25px; border-radius: 12px; margin-bottom: 30px;">
@@ -1023,7 +1023,9 @@
           
           if (response.ok && data.success) {
             correoMessage.className = 'message success';
-          correoMessage.textContent = data.message || `Correo enviado exitosamente a ${data.emailsCount || 0} ${tipoTexto}`;
+            // Usar el mensaje del servidor que ya incluye los números correctos
+            const mensajeFinal = data.message || `Correo enviado exitosamente a ${data.sent || 0} ${tipoTexto}${data.failed > 0 ? ` (${data.failed} fallidos)` : ''}`;
+            correoMessage.textContent = mensajeFinal;
             
             // Limpiar formulario
           document.getElementById(asuntoInputId).value = '';
