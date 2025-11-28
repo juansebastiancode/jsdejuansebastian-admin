@@ -21,6 +21,26 @@ const emailSchema = new mongoose.Schema({
 
 const Email = mongoose.model('Email', emailSchema, 'emails');
 
+// Modelo para plantillas de correo
+const plantillaSchema = new mongoose.Schema({
+  nombre: { type: String, required: true },
+  asunto: { type: String, required: true },
+  mensaje: { type: String, required: true },
+  fechaCreacion: { type: Date, default: Date.now },
+  fechaModificacion: { type: Date, default: Date.now }
+}, { timestamps: false });
+
+const Plantilla = mongoose.model('Plantilla', plantillaSchema, 'plantillas');
+
+// Modelo para posibles clientes
+const posibleClienteSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true, lowercase: true },
+  fecha: { type: String, required: true },
+  seleccionado: { type: Boolean, default: false }
+}, { timestamps: false });
+
+const PosibleCliente = mongoose.model('PosibleCliente', posibleClienteSchema, 'posiblesClientes');
+
 // Middleware CORS - configurar antes de cualquier ruta
 app.use(cors({
   origin: '*',
@@ -269,18 +289,32 @@ app.post('/api/newsletter/send', async (req, res) => {
       return res.status(401).json({ error: 'No autorizado. Por favor, recarga la página e inicia sesión nuevamente.' });
     }
     
-    const { asunto, mensaje } = req.body;
+    const { asunto, mensaje, tipo } = req.body;
     
     if (!asunto || !mensaje) {
       return res.status(400).json({ error: 'El asunto y mensaje son requeridos' });
     }
     
-    // Solo obtener emails seleccionados
-    const emailsData = await Email.find({ seleccionado: true }).lean();
-    const emails = emailsData.map(e => e.email);
+    let emails = [];
+    
+    // Obtener emails según el tipo
+    if (tipo === 'suscriptores') {
+      const emailsData = await Email.find({ seleccionado: true }).lean();
+      emails = emailsData.map(e => e.email);
+    } else if (tipo === 'posibles') {
+      const posiblesClientesData = await PosibleCliente.find({ seleccionado: true }).lean();
+      emails = posiblesClientesData.map(e => e.email);
+    } else {
+      // Si no se especifica tipo, enviar a ambos (comportamiento por defecto)
+      const emailsData = await Email.find({ seleccionado: true }).lean();
+      const emailsSuscriptores = emailsData.map(e => e.email);
+      const posiblesClientesData = await PosibleCliente.find({ seleccionado: true }).lean();
+      const emailsPosibles = posiblesClientesData.map(e => e.email);
+      emails = [...emailsSuscriptores, ...emailsPosibles];
+    }
     
     if (emails.length === 0) {
-      return res.status(400).json({ error: 'No hay suscriptores seleccionados para enviar' });
+      return res.status(400).json({ error: 'No hay destinatarios seleccionados para enviar' });
     }
     
     console.log(`Preparando enviar correo a ${emails.length} suscriptores...`);
@@ -408,6 +442,320 @@ app.post('/admin/login', (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ error: 'Error al verificar contraseña' });
+  }
+});
+
+// ============ PLANTILLAS ENDPOINTS ============
+
+// Guardar plantilla (solo admin)
+app.post('/api/plantillas', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const { nombre, asunto, mensaje } = req.body;
+    
+    if (!asunto || !mensaje) {
+      return res.status(400).json({ error: 'El asunto y mensaje son requeridos' });
+    }
+    
+    // Usar el asunto como nombre si no se proporciona nombre
+    const nombrePlantilla = nombre ? nombre.trim() : asunto.trim();
+    
+    const nuevaPlantilla = new Plantilla({
+      nombre: nombrePlantilla,
+      asunto: asunto.trim(),
+      mensaje: mensaje.trim(),
+      fechaModificacion: new Date()
+    });
+    
+    await nuevaPlantilla.save();
+    
+    res.json({ success: true, message: 'Plantilla guardada exitosamente', plantilla: nuevaPlantilla });
+  } catch (error) {
+    console.error('Error al guardar plantilla:', error);
+    res.status(500).json({ error: 'Error al guardar la plantilla' });
+  }
+});
+
+// Obtener todas las plantillas (solo admin)
+app.get('/api/plantillas', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const plantillas = await Plantilla.find({}).sort({ fechaModificacion: -1 }).lean();
+    
+    res.json({ success: true, plantillas });
+  } catch (error) {
+    console.error('Error al obtener plantillas:', error);
+    res.status(500).json({ error: 'Error al obtener las plantillas' });
+  }
+});
+
+// Actualizar plantilla (solo admin)
+app.put('/api/plantillas/:id', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'PUT, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const { nombre, asunto, mensaje } = req.body;
+    
+    if (!nombre || !asunto || !mensaje) {
+      return res.status(400).json({ error: 'El nombre, asunto y mensaje son requeridos' });
+    }
+    
+    const plantilla = await Plantilla.findByIdAndUpdate(
+      req.params.id,
+      {
+        nombre: nombre.trim(),
+        asunto: asunto.trim(),
+        mensaje: mensaje.trim(),
+        fechaModificacion: new Date()
+      },
+      { new: true, lean: true }
+    );
+    
+    if (!plantilla) {
+      return res.status(404).json({ error: 'Plantilla no encontrada' });
+    }
+    
+    res.json({ success: true, message: 'Plantilla actualizada exitosamente', plantilla });
+  } catch (error) {
+    console.error('Error al actualizar plantilla:', error);
+    res.status(500).json({ error: 'Error al actualizar la plantilla' });
+  }
+});
+
+// Eliminar plantilla (solo admin)
+app.delete('/api/plantillas/:id', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const plantilla = await Plantilla.findByIdAndDelete(req.params.id);
+    
+    if (!plantilla) {
+      return res.status(404).json({ error: 'Plantilla no encontrada' });
+    }
+    
+    res.json({ success: true, message: 'Plantilla eliminada exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar plantilla:', error);
+    res.status(500).json({ error: 'Error al eliminar la plantilla' });
+  }
+});
+
+// ============ POSIBLES CLIENTES ENDPOINTS ============
+
+// Añadir posible cliente manualmente (solo admin)
+app.post('/api/posibles-clientes', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const { email } = req.body;
+    
+    if (!email || !email.trim()) {
+      return res.status(400).json({ error: 'El correo electrónico es requerido' });
+    }
+    
+    // Validar formato de email básico
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({ error: 'El formato del correo electrónico no es válido' });
+    }
+    
+    const emailNormalized = email.trim().toLowerCase();
+    
+    // Verificar si el email ya existe
+    const existe = await PosibleCliente.findOne({ email: emailNormalized });
+    
+    if (existe) {
+      return res.status(400).json({ error: 'Este correo ya está en la lista de posibles clientes' });
+    }
+    
+    // Crear nuevo posible cliente
+    const nuevoPosibleCliente = new PosibleCliente({
+      email: emailNormalized,
+      fecha: new Date().toISOString().split('T')[0]
+    });
+    
+    await nuevoPosibleCliente.save();
+    res.json({ success: true, message: 'Posible cliente añadido exitosamente' });
+  } catch (error) {
+    console.error('Error al añadir posible cliente:', error);
+    if (error.code === 11000) {
+      return res.status(400).json({ error: 'Este correo ya está en la lista de posibles clientes' });
+    }
+    res.status(500).json({ error: 'Error al añadir el posible cliente' });
+  }
+});
+
+// Obtener lista de posibles clientes (solo admin)
+app.get('/api/posibles-clientes', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const posiblesClientes = await PosibleCliente.find({}).sort({ fecha: -1 }).lean();
+    
+    res.json({ success: true, posiblesClientes });
+  } catch (error) {
+    console.error('Error al obtener posibles clientes:', error);
+    res.status(500).json({ error: 'Error al obtener los posibles clientes' });
+  }
+});
+
+// Actualizar estado de selección de un posible cliente (solo admin)
+app.put('/api/posibles-clientes/:email/select', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'PUT, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const emailToUpdate = decodeURIComponent(req.params.email).toLowerCase();
+    const { seleccionado } = req.body;
+    
+    if (typeof seleccionado !== 'boolean') {
+      return res.status(400).json({ error: 'El campo seleccionado debe ser true o false' });
+    }
+    
+    const result = await PosibleCliente.findOneAndUpdate(
+      { email: emailToUpdate },
+      { seleccionado: seleccionado },
+      { new: true, lean: true }
+    );
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Correo no encontrado' });
+    }
+    
+    res.json({ success: true, posibleCliente: result });
+  } catch (error) {
+    console.error('Error al actualizar selección:', error);
+    res.status(500).json({ error: 'Error al actualizar la selección' });
+  }
+});
+
+// Marcar/desmarcar todos los posibles clientes (solo admin)
+app.put('/api/posibles-clientes/select-all', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'PUT, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const { seleccionado } = req.body;
+    
+    if (typeof seleccionado !== 'boolean') {
+      return res.status(400).json({ error: 'El campo seleccionado debe ser true o false' });
+    }
+    
+    const result = await PosibleCliente.updateMany({}, { seleccionado: seleccionado });
+    
+    res.json({ 
+      success: true, 
+      message: `${result.modifiedCount} correos actualizados`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error al actualizar todos:', error);
+    res.status(500).json({ error: 'Error al actualizar los correos' });
+  }
+});
+
+// Eliminar un posible cliente (solo admin)
+app.delete('/api/posibles-clientes/:email', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const emailToDelete = decodeURIComponent(req.params.email).toLowerCase();
+    
+    if (!emailToDelete) {
+      return res.status(400).json({ error: 'El correo es requerido' });
+    }
+    
+    const result = await PosibleCliente.findOneAndDelete({ email: emailToDelete });
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Correo no encontrado' });
+    }
+    
+    res.json({ success: true, message: 'Posible cliente eliminado exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar posible cliente:', error);
+    res.status(500).json({ error: 'Error al eliminar el posible cliente' });
   }
 });
 

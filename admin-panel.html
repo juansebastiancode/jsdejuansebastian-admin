@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Newsletter - Juan Sebastian hola@jsdejuansebastian.com</title>
+  <title>Mailing - Juan Sebastian hola@jsdejuansebastian.com</title>
   <style>
     * {
       margin: 0;
@@ -169,6 +169,34 @@
       border-color: #333;
     }
     
+    .tab-button {
+      transition: all 0.2s;
+    }
+    
+    .tab-button.active {
+      background: #000 !important;
+      color: white !important;
+    }
+    
+    .tab-button:not(.active) {
+      background: transparent !important;
+      color: #666 !important;
+    }
+    
+    .tab-button:not(.active):hover {
+      background: #f5f5f5 !important;
+      color: #333 !important;
+    }
+    
+    .tab-content {
+      animation: fadeIn 0.3s;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
     button.btn-danger {
       background: transparent;
       border: 1px solid #dc3545;
@@ -326,6 +354,97 @@
         min-height: 48px; /* Tamaño táctil recomendado */
       }
       
+      /* Asegurar que todos los botones en móvil tengan el mismo ancho */
+      #emailsList button,
+      #posiblesList button,
+      .newsletter-form button,
+      button.btn-primary,
+      button.btn-secondary,
+      #guardarPlantillaBtn,
+      #guardarPlantillaBtnPosibles {
+        width: 100% !important;
+        min-height: 48px !important;
+        padding: 14px 16px !important;
+        font-size: 15px !important;
+        margin-top: 8px !important;
+        margin-bottom: 0 !important;
+        box-sizing: border-box;
+      }
+      
+      /* Botones dentro de contenedores flex en móvil */
+      div[style*="display: flex"] button {
+        width: 100% !important;
+      }
+      
+      /* Contenedor de botones Marcar/Desmarcar - apilar verticalmente */
+      #emailsList > div[style*="position: sticky"] > div[style*="display: flex"],
+      #posiblesList > div[style*="position: sticky"] > div[style*="display: flex"] {
+        flex-direction: column !important;
+        gap: 8px !important;
+      }
+      
+      /* Contenedor de botones del formulario - apilar verticalmente */
+      .newsletter-form form > div:last-child {
+        flex-direction: column !important;
+        gap: 8px !important;
+        align-items: stretch !important;
+      }
+      
+      /* Contenedor con justify-content space-between (contiene los botones) */
+      .newsletter-form form > div[style*="justify-content: space-between"] {
+        flex-direction: column !important;
+        gap: 8px !important;
+        align-items: stretch !important;
+      }
+      
+      /* Contenedor interno de botones (div dentro del contenedor principal) */
+      .newsletter-form form > div > div[style*="display: flex"] {
+        flex-direction: column !important;
+        gap: 8px !important;
+        width: 100% !important;
+      }
+      
+      /* Contenedor de input y botón Añadir - apilar verticalmente en móvil */
+      div[style*="display: flex"][style*="gap: 10px"] {
+        flex-direction: column !important;
+      }
+      
+      /* Botón Añadir con ancho completo */
+      button[onclick="añadirPosibleCliente()"] {
+        width: 100% !important;
+        margin-top: 8px !important;
+      }
+      
+      /* Contenedor de Ver plantillas - apilar si hay flex */
+      div[style*="justify-content: flex-end"] {
+        flex-direction: column !important;
+        align-items: stretch !important;
+      }
+      
+      /* Botón Ver plantillas */
+      #abrirPlantillasBtn,
+      #abrirPlantillasBtnPosibles {
+        width: 100% !important;
+        margin-bottom: 8px !important;
+      }
+      
+      /* Todos los botones dentro de contenedores flex deben tener ancho completo */
+      .newsletter-form form div[style*="display: flex"] button,
+      .newsletter-form form div[style*="justify-content"] button,
+      .newsletter-form form button,
+      .newsletter-form button {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+      }
+      
+      /* Asegurar que los divs contenedores no limiten el ancho */
+      .newsletter-form form > div > div {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      
       .btn-salir {
         padding: 10px 18px;
         font-size: 14px;
@@ -405,44 +524,129 @@
     <div style="display: flex; justify-content: flex-end; margin-bottom: 15px; margin-top: -10px;">
       <button onclick="cerrarSesion()" class="btn-salir">Salir</button>
     </div>
-    <h1>Newsletter - jsdejuansebastian.com</h1>
+    <h1>Mailing - jsdejuansebastian.com</h1>
     <p class="subtitle">Juan Sebastian hola@jsdejuansebastian.com</p>
     
     <!-- Sección Newsletter -->
     <div class="newsletter-section" style="background: #ffffff; padding: 25px; border-radius: 12px; margin-bottom: 30px;">
-      <div class="newsletter-form" style="display: block; margin-bottom: 25px;" id="newsletterFormSection">
-        <form id="enviarCorreoForm">
-          <div class="form-group">
-            <label for="correoAsunto">Asunto</label>
-            <input type="text" id="correoAsunto" name="asunto" required placeholder="Ej: Nueva reflexión">
-          </div>
-          <div class="form-group">
-            <label for="correoMensaje">Mensaje</label>
-            <textarea id="correoMensaje" name="mensaje" required placeholder="Escribe aquí el mensaje del correo..." style="min-height: 150px;"></textarea>
-          </div>
-          <div style="display: flex; justify-content: flex-end;">
-            <button type="submit" class="btn-primary">Enviar Correo</button>
-          </div>
-        </form>
-        <div id="correoMessage" class="message"></div>
+      
+      <!-- Tabs -->
+      <div style="margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; text-align: left;">
+        <div style="display: inline-flex; gap: 0; justify-content: flex-start; align-items: flex-start;">
+          <button id="tabPosibles" class="tab-button active" onclick="cambiarTab('posibles')" style="padding: 12px 24px; background: #000; color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 600; border-radius: 8px 8px 0 0; margin: 0;">
+            Posibles
+          </button>
+          <button id="tabSuscriptores" class="tab-button" onclick="cambiarTab('suscriptores')" style="padding: 12px 24px; background: transparent; color: #666; border: none; cursor: pointer; font-size: 14px; font-weight: 600; border-radius: 8px 8px 0 0; margin: 0;">
+            Suscriptores
+          </button>
+        </div>
       </div>
       
-      <div class="controls-row">
-        <div class="btn-group">
-          <button onclick="seleccionarTodos()" class="btn-secondary">Marcar Todos</button>
-          <button onclick="deseleccionarTodos()" class="btn-secondary">Desmarcar Todos</button>
+      <!-- Contenido Suscriptores -->
+      <div id="contenidoSuscriptores" class="tab-content" style="display: none;">
+        <div id="emailsList" style="max-height: 400px; overflow-y: auto; background: #ffffff; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e0e0e0; position: relative;">
+          <div style="position: sticky; top: 0; background: #ffffff; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid #e0e0e0; z-index: 10;">
+            <div style="display: flex; gap: 8px; margin: 0;">
+              <button onclick="seleccionarTodos()" class="btn-secondary" style="margin: 0; padding: 8px 16px; font-size: 13px; width: auto;">Marcar Todos</button>
+              <button onclick="deseleccionarTodos()" class="btn-secondary" style="margin: 0; padding: 8px 16px; font-size: 13px; width: auto;">Desmarcar Todos</button>
+            </div>
+          </div>
+          <div id="emailsListContent">
+            <p style="color: #666; font-size: 14px;">Cargando...</p>
+          </div>
         </div>
-        <p class="stats-text">
+        
+        <p class="stats-text" style="margin-bottom: 20px;">
           Seleccionados: <strong id="totalSeleccionados">0</strong> | 
           Total de suscriptores: <strong id="totalSuscriptores">0</strong>
         </p>
+        
+        <!-- Formulario de envío para Suscriptores -->
+        <h3 style="margin-top: 30px; margin-bottom: 10px; font-size: 20px; font-weight: 600; color: #333;">Enviar correo</h3>
+        <div class="newsletter-form" style="display: block; margin-top: 0;" id="newsletterFormSectionSuscriptores">
+          <form id="enviarCorreoFormSuscriptores">
+          <div class="form-group">
+              <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px;">
+                <button type="button" id="abrirPlantillasBtn" class="btn-secondary" style="margin: 0; padding: 6px 12px; font-size: 13px;">Ver plantillas</button>
+              </div>
+              <input type="text" id="correoAsuntoSuscriptores" name="asunto" required placeholder="Asunto">
+          </div>
+          <div class="form-group">
+              <textarea id="correoMensajeSuscriptores" name="mensaje" required placeholder="Mensaje" style="min-height: 150px;"></textarea>
+          </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+              <div style="display: flex; gap: 10px;">
+                <button type="button" id="guardarPlantillaBtn" class="btn-secondary" style="margin: 0;">Guardar como plantilla</button>
+              </div>
+              <button type="submit" class="btn-primary">Enviar a Suscriptores</button>
+          </div>
+        </form>
+          <div id="correoMessageSuscriptores" class="message"></div>
+        </div>
       </div>
       
-      <div id="emailsList" style="max-height: 400px; overflow-y: auto; background: #ffffff; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e0e0e0;">
+      <!-- Contenido Posibles -->
+      <div id="contenidoPosibles" class="tab-content">
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+          <input type="email" id="nuevoPosibleCliente" placeholder="Email del posible cliente" style="flex: 1; padding: 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px;">
+          <button onclick="añadirPosibleCliente()" class="btn-primary" style="margin: 0; padding: 10px 20px;">Añadir</button>
+      </div>
+      
+        <div id="posiblesList" style="max-height: 400px; overflow-y: auto; background: #ffffff; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e0e0e0; position: relative;">
+          <div style="position: sticky; top: 0; background: #ffffff; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid #e0e0e0; z-index: 10;">
+            <div style="display: flex; gap: 8px; margin: 0;">
+              <button onclick="seleccionarTodosPosibles()" class="btn-secondary" style="margin: 0; padding: 8px 16px; font-size: 13px; width: auto;">Marcar Todos</button>
+              <button onclick="deseleccionarTodosPosibles()" class="btn-secondary" style="margin: 0; padding: 8px 16px; font-size: 13px; width: auto;">Desmarcar Todos</button>
+            </div>
+          </div>
+          <div id="posiblesListContent">
         <p style="color: #666; font-size: 14px;">Cargando...</p>
       </div>
     </div>
     
+        <p class="stats-text" style="margin-bottom: 20px;">
+          Seleccionados: <strong id="totalSeleccionadosPosibles">0</strong> | 
+          Total de posibles: <strong id="totalPosibles">0</strong>
+        </p>
+    
+        <!-- Formulario de envío para Posibles -->
+        <h3 style="margin-top: 30px; margin-bottom: 10px; font-size: 20px; font-weight: 600; color: #333;">Enviar correo</h3>
+        <div class="newsletter-form" style="display: block; margin-top: 0;" id="newsletterFormSectionPosibles">
+          <form id="enviarCorreoFormPosibles">
+            <div class="form-group">
+              <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px;">
+                <button type="button" id="abrirPlantillasBtnPosibles" class="btn-secondary" style="margin: 0; padding: 6px 12px; font-size: 13px;">Ver plantillas</button>
+              </div>
+              <input type="text" id="correoAsuntoPosibles" name="asunto" required placeholder="Asunto">
+            </div>
+            <div class="form-group">
+              <textarea id="correoMensajePosibles" name="mensaje" required placeholder="Mensaje" style="min-height: 150px;"></textarea>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+              <div style="display: flex; gap: 10px;">
+                <button type="button" id="guardarPlantillaBtnPosibles" class="btn-secondary" style="margin: 0;">Guardar como plantilla</button>
+              </div>
+              <button type="submit" class="btn-primary">Enviar a Posibles</button>
+            </div>
+          </form>
+          <div id="correoMessagePosibles" class="message"></div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+  <!-- Modal de Plantillas -->
+  <div id="plantillasModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 30px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; color: #333; font-size: 24px;">Plantillas guardadas</h2>
+        <button id="cerrarPlantillasModal" style="background: transparent; border: none; font-size: 24px; cursor: pointer; color: #666; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
+      </div>
+      <div id="plantillasList" style="display: flex; flex-direction: column; gap: 12px;">
+        <p style="color: #666; text-align: center; padding: 20px;">Cargando plantillas...</p>
+      </div>
+    </div>
   </div>
   
   <script>
@@ -528,6 +732,8 @@
         // Si la contraseña es correcta, inicializar newsletter
         await cargarTotalSuscriptores();
         await cargarEmails();
+        await cargarPosiblesClientes();
+        await cargarPlantillas();
       } catch (error) {
         console.error('Error en inicialización:', error);
       }
@@ -569,10 +775,10 @@
     // Cargar emails de suscriptores
     async function cargarEmails() {
       try {
-        const emailsList = document.getElementById('emailsList');
-        if (!emailsList) return;
+        const emailsListContent = document.getElementById('emailsListContent');
+        if (!emailsListContent) return;
         
-        emailsList.innerHTML = '<p style="color: #666; font-size: 14px;">Cargando...</p>';
+        emailsListContent.innerHTML = '<p style="color: #666; font-size: 14px;">Cargando...</p>';
         
         const response = await fetch('/api/newsletter/emails', {
           headers: {
@@ -587,7 +793,7 @@
           totalSuscriptores.textContent = data.emails.length;
           
           if (data.emails.length === 0) {
-            emailsList.innerHTML = '<p style="color: #666; font-size: 14px;">No hay suscriptores aún.</p>';
+            emailsListContent.innerHTML = '<p style="color: #666; font-size: 14px;">No hay suscriptores aún.</p>';
           } else {
             // Ordenar: primero los seleccionados, luego los no seleccionados
             const emailsOrdenados = [...data.emails].sort((a, b) => {
@@ -617,7 +823,7 @@
                 </div>
               `;
             });
-            emailsList.innerHTML = html;
+            emailsListContent.innerHTML = html;
             
             // Actualizar contador de seleccionados
             const totalSeleccionados = document.getElementById('totalSeleccionados');
@@ -628,12 +834,14 @@
           
           // El formulario siempre está visible, no necesitamos mostrarlo/ocultarlo
         } else {
-          emailsList.innerHTML = '<p style="color: #dc3545; font-size: 14px;">Error al cargar los emails</p>';
+          emailsListContent.innerHTML = '<p style="color: #dc3545; font-size: 14px;">Error al cargar los emails</p>';
         }
       } catch (error) {
         console.error('Error al cargar emails:', error);
-        const emailsList = document.getElementById('emailsList');
-        emailsList.innerHTML = '<p style="color: #dc3545; font-size: 14px;">Error de conexión</p>';
+        const emailsListContent = document.getElementById('emailsListContent');
+        if (emailsListContent) {
+          emailsListContent.innerHTML = '<p style="color: #dc3545; font-size: 14px;">Error de conexión</p>';
+        }
       }
     }
     
@@ -733,19 +941,6 @@
         if (response.ok && data.success) {
           // Recargar la lista de emails
           await cargarEmails();
-          
-          // Mostrar mensaje de éxito
-          const emailsList = document.getElementById('emailsList');
-          if (emailsList) {
-            const successMsg = document.createElement('div');
-            successMsg.style.cssText = 'padding: 10px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 6px; margin-bottom: 10px; font-size: 14px;';
-            successMsg.textContent = 'Correo eliminado exitosamente';
-            emailsList.insertBefore(successMsg, emailsList.firstChild);
-            
-            setTimeout(() => {
-              successMsg.remove();
-            }, 3000);
-          }
         } else {
           alert('Error: ' + (data.error || 'Error al eliminar el correo'));
         }
@@ -755,38 +950,36 @@
       }
     }
     
-    // Formulario para enviar correo
-    const enviarCorreoForm = document.getElementById('enviarCorreoForm');
-    if (enviarCorreoForm) {
-      enviarCorreoForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const asunto = document.getElementById('correoAsunto').value;
-        const mensaje = document.getElementById('correoMensaje').value;
-        const correoMessage = document.getElementById('correoMessage');
+    // Función para enviar correo (compartida)
+    async function enviarCorreo(tipo, asuntoInputId, mensajeInputId, messageId, totalSeleccionadosId) {
+      const asunto = document.getElementById(asuntoInputId).value;
+      const mensaje = document.getElementById(mensajeInputId).value;
+      const correoMessage = document.getElementById(messageId);
         
         if (!asunto || !mensaje) {
           correoMessage.className = 'message error';
           correoMessage.textContent = 'El asunto y mensaje son requeridos';
+        correoMessage.style.display = 'block';
           return;
         }
         
-        // Obtener número de emails seleccionados
-        const totalSeleccionados = document.getElementById('totalSeleccionados');
-        const numSeleccionados = totalSeleccionados ? parseInt(totalSeleccionados.textContent) || 0 : 0;
-        
-        if (numSeleccionados === 0) {
-          correoMessage.className = 'message error';
-          correoMessage.textContent = 'No hay emails seleccionados. Por favor, selecciona al menos uno.';
-          correoMessage.style.display = 'block';
-          return;
-        }
-        
-        const mensajeConfirmacion = numSeleccionados === 1 
-          ? `¿Estás seguro de que quieres enviar este correo a 1 suscriptor seleccionado?`
-          : `¿Estás seguro de que quieres enviar este correo a ${numSeleccionados} suscriptores seleccionados?`;
-        
-        if (!confirm(mensajeConfirmacion)) {
+      // Obtener número de emails seleccionados
+      const totalSeleccionados = document.getElementById(totalSeleccionadosId);
+      const numSeleccionados = totalSeleccionados ? parseInt(totalSeleccionados.textContent) || 0 : 0;
+      
+      if (numSeleccionados === 0) {
+        correoMessage.className = 'message error';
+        correoMessage.textContent = 'No hay emails seleccionados. Por favor, selecciona al menos uno.';
+        correoMessage.style.display = 'block';
+        return;
+      }
+      
+      const tipoTexto = tipo === 'suscriptores' ? 'suscriptores' : 'posibles clientes';
+      const mensajeConfirmacion = numSeleccionados === 1 
+        ? `¿Estás seguro de que quieres enviar este correo a 1 ${tipoTexto.slice(0, -1)} seleccionado?`
+        : `¿Estás seguro de que quieres enviar este correo a ${numSeleccionados} ${tipoTexto} seleccionados?`;
+      
+      if (!confirm(mensajeConfirmacion)) {
           return;
         }
         
@@ -805,8 +998,6 @@
           return;
         }
         
-        console.log('Enviando correo. Token presente:', adminToken ? 'Sí' : 'No');
-        
         try {
           const response = await fetch('/api/newsletter/send', {
             method: 'POST',
@@ -814,7 +1005,7 @@
               'Content-Type': 'application/json',
               'Authorization': adminToken
             },
-            body: JSON.stringify({ asunto, mensaje })
+          body: JSON.stringify({ asunto, mensaje, tipo })
           });
           
           let data;
@@ -822,7 +1013,7 @@
             data = await response.json();
           } catch (e) {
             correoMessage.className = 'message error';
-            correoMessage.textContent = 'Error: No se pudo leer la respuesta del servidor. El servidor puede estar bloqueando conexiones SMTP.';
+          correoMessage.textContent = 'Error: No se pudo leer la respuesta del servidor.';
             setTimeout(() => {
               correoMessage.className = 'message';
               correoMessage.style.display = 'none';
@@ -832,10 +1023,11 @@
           
           if (response.ok && data.success) {
             correoMessage.className = 'message success';
-            correoMessage.textContent = data.message || `Correo enviado exitosamente a ${data.emailsCount || 0} suscriptores`;
+          correoMessage.textContent = data.message || `Correo enviado exitosamente a ${data.emailsCount || 0} ${tipoTexto}`;
             
             // Limpiar formulario
-            enviarCorreoForm.reset();
+          document.getElementById(asuntoInputId).value = '';
+          document.getElementById(mensajeInputId).value = '';
             
             setTimeout(() => {
               correoMessage.className = 'message';
@@ -860,7 +1052,533 @@
             correoMessage.style.display = 'none';
           }, 5000);
         }
+    }
+    
+    // Formulario para enviar correo a suscriptores
+    const enviarCorreoFormSuscriptores = document.getElementById('enviarCorreoFormSuscriptores');
+    if (enviarCorreoFormSuscriptores) {
+      enviarCorreoFormSuscriptores.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await enviarCorreo('suscriptores', 'correoAsuntoSuscriptores', 'correoMensajeSuscriptores', 'correoMessageSuscriptores', 'totalSeleccionados');
       });
+    }
+    
+    // Formulario para enviar correo a posibles clientes
+    const enviarCorreoFormPosibles = document.getElementById('enviarCorreoFormPosibles');
+    if (enviarCorreoFormPosibles) {
+      enviarCorreoFormPosibles.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await enviarCorreo('posibles', 'correoAsuntoPosibles', 'correoMensajePosibles', 'correoMessagePosibles', 'totalSeleccionadosPosibles');
+      });
+    }
+    
+    // Sincronizar botones de plantillas
+    const abrirPlantillasBtnPosibles = document.getElementById('abrirPlantillasBtnPosibles');
+    if (abrirPlantillasBtnPosibles) {
+      abrirPlantillasBtnPosibles.addEventListener('click', () => {
+        abrirModalPlantillas();
+      });
+    }
+    
+    const guardarPlantillaBtnPosibles = document.getElementById('guardarPlantillaBtnPosibles');
+    if (guardarPlantillaBtnPosibles) {
+      guardarPlantillaBtnPosibles.addEventListener('click', async () => {
+        const asunto = document.getElementById('correoAsuntoPosibles').value.trim();
+        const mensaje = document.getElementById('correoMensajePosibles').value.trim();
+        
+        if (!asunto || !mensaje) {
+          alert('El asunto y mensaje son requeridos para guardar una plantilla');
+          return;
+        }
+        
+        try {
+          const response = await fetch('/api/plantillas', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': adminToken
+            },
+            body: JSON.stringify({
+              nombre: asunto,
+              asunto: asunto,
+              mensaje: mensaje
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok && data.success) {
+            const correoMessage = document.getElementById('correoMessagePosibles');
+            if (correoMessage) {
+              correoMessage.className = 'message success';
+              correoMessage.textContent = 'Plantilla guardada exitosamente';
+              correoMessage.style.display = 'block';
+              
+              setTimeout(() => {
+                correoMessage.className = 'message';
+                correoMessage.style.display = 'none';
+              }, 3000);
+            }
+            await cargarPlantillas();
+          } else {
+            alert('Error: ' + (data.error || 'Error al guardar la plantilla'));
+          }
+        } catch (error) {
+          console.error('Error al guardar plantilla:', error);
+          alert('Error de conexión al guardar la plantilla');
+        }
+      });
+    }
+    
+    // ============ PLANTILLAS FUNCTIONS ============
+    
+    let plantillas = [];
+    
+    // Cargar plantillas
+    async function cargarPlantillas() {
+      try {
+        const response = await fetch('/api/plantillas', {
+          headers: {
+            'Authorization': adminToken
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.plantillas) {
+          plantillas = data.plantillas;
+          mostrarPlantillasEnModal();
+        }
+      } catch (error) {
+        console.error('Error al cargar plantillas:', error);
+      }
+    }
+    
+    // Mostrar plantillas en el modal
+    function mostrarPlantillasEnModal() {
+      const plantillasList = document.getElementById('plantillasList');
+      if (!plantillasList) return;
+      
+      if (plantillas.length === 0) {
+        plantillasList.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No hay plantillas guardadas</p>';
+        return;
+      }
+      
+      plantillasList.innerHTML = '';
+      
+      plantillas.forEach(plantilla => {
+        const plantillaItem = document.createElement('div');
+        plantillaItem.style.cssText = 'padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; gap: 15px;';
+        
+        const plantillaInfo = document.createElement('div');
+        plantillaInfo.style.flex = '1';
+        
+        const plantillaNombre = document.createElement('div');
+        plantillaNombre.style.cssText = 'font-weight: 600; color: #333; margin-bottom: 5px; font-size: 15px;';
+        plantillaNombre.textContent = plantilla.asunto || plantilla.nombre;
+        
+        const plantillaPreview = document.createElement('div');
+        plantillaPreview.style.cssText = 'color: #666; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+        plantillaPreview.textContent = plantilla.mensaje.substring(0, 60) + (plantilla.mensaje.length > 60 ? '...' : '');
+        
+        plantillaInfo.appendChild(plantillaNombre);
+        plantillaInfo.appendChild(plantillaPreview);
+        
+        const plantillaActions = document.createElement('div');
+        plantillaActions.style.cssText = 'display: flex; gap: 8px; flex-shrink: 0;';
+        
+        const usarBtn = document.createElement('button');
+        usarBtn.textContent = 'Usar';
+        usarBtn.className = 'btn-primary';
+        usarBtn.style.cssText = 'padding: 8px 16px; font-size: 13px; margin: 0;';
+        usarBtn.onclick = () => {
+          // Cargar en el formulario del tab activo
+          const tabActivo = document.querySelector('.tab-button.active');
+          if (tabActivo && tabActivo.id === 'tabSuscriptores') {
+            document.getElementById('correoAsuntoSuscriptores').value = plantilla.asunto;
+            document.getElementById('correoMensajeSuscriptores').value = plantilla.mensaje;
+          } else {
+            document.getElementById('correoAsuntoPosibles').value = plantilla.asunto;
+            document.getElementById('correoMensajePosibles').value = plantilla.mensaje;
+          }
+          cerrarModalPlantillas();
+        };
+        
+        const eliminarBtn = document.createElement('button');
+        eliminarBtn.textContent = 'Eliminar';
+        eliminarBtn.className = 'btn-danger';
+        eliminarBtn.style.cssText = 'padding: 8px 16px; font-size: 13px; margin: 0;';
+        eliminarBtn.onclick = () => eliminarPlantilla(plantilla._id);
+        
+        plantillaActions.appendChild(usarBtn);
+        plantillaActions.appendChild(eliminarBtn);
+        
+        plantillaItem.appendChild(plantillaInfo);
+        plantillaItem.appendChild(plantillaActions);
+        
+        plantillasList.appendChild(plantillaItem);
+      });
+    }
+    
+    // Abrir modal de plantillas
+    const abrirPlantillasBtn = document.getElementById('abrirPlantillasBtn');
+    if (abrirPlantillasBtn) {
+      abrirPlantillasBtn.addEventListener('click', () => {
+        abrirModalPlantillas();
+      });
+    }
+    
+    // Cerrar modal de plantillas
+    const cerrarPlantillasModal = document.getElementById('cerrarPlantillasModal');
+    const plantillasModal = document.getElementById('plantillasModal');
+    
+    if (cerrarPlantillasModal) {
+      cerrarPlantillasModal.addEventListener('click', cerrarModalPlantillas);
+    }
+    
+    if (plantillasModal) {
+      plantillasModal.addEventListener('click', (e) => {
+        if (e.target === plantillasModal) {
+          cerrarModalPlantillas();
+        }
+      });
+    }
+    
+    function abrirModalPlantillas() {
+      if (plantillasModal) {
+        plantillasModal.style.display = 'flex';
+        cargarPlantillas();
+      }
+    }
+    
+    function cerrarModalPlantillas() {
+      if (plantillasModal) {
+        plantillasModal.style.display = 'none';
+      }
+    }
+    
+    // Eliminar plantilla
+    async function eliminarPlantilla(plantillaId) {
+      if (!confirm('¿Estás seguro de que quieres eliminar esta plantilla?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/plantillas/${plantillaId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': adminToken
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          await cargarPlantillas();
+        } else {
+          alert('Error: ' + (data.error || 'Error al eliminar la plantilla'));
+        }
+      } catch (error) {
+        console.error('Error al eliminar plantilla:', error);
+        alert('Error de conexión al eliminar la plantilla');
+      }
+    }
+    
+    // Guardar plantilla (desde suscriptores)
+    const guardarPlantillaBtn = document.getElementById('guardarPlantillaBtn');
+    if (guardarPlantillaBtn) {
+      guardarPlantillaBtn.addEventListener('click', async () => {
+        const asunto = document.getElementById('correoAsuntoSuscriptores').value.trim();
+        const mensaje = document.getElementById('correoMensajeSuscriptores').value.trim();
+        
+        if (!asunto || !mensaje) {
+          alert('El asunto y mensaje son requeridos para guardar una plantilla');
+          return;
+        }
+        
+        try {
+          const response = await fetch('/api/plantillas', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': adminToken
+            },
+            body: JSON.stringify({
+              nombre: asunto,
+              asunto: asunto,
+              mensaje: mensaje
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok && data.success) {
+            // Mostrar mensaje de éxito en el formulario
+            const correoMessage = document.getElementById('correoMessage');
+            if (correoMessage) {
+              correoMessage.className = 'message success';
+              correoMessage.textContent = 'Plantilla guardada exitosamente';
+              correoMessage.style.display = 'block';
+              
+              setTimeout(() => {
+                correoMessage.className = 'message';
+                correoMessage.style.display = 'none';
+              }, 3000);
+            }
+            await cargarPlantillas();
+          } else {
+            alert('Error: ' + (data.error || 'Error al guardar la plantilla'));
+          }
+        } catch (error) {
+          console.error('Error al guardar plantilla:', error);
+          alert('Error de conexión al guardar la plantilla');
+        }
+      });
+    }
+    
+    // ============ TABS Y POSIBLES CLIENTES ============
+    
+    // Cambiar entre tabs
+    function cambiarTab(tab) {
+      const tabSuscriptores = document.getElementById('tabSuscriptores');
+      const tabPosibles = document.getElementById('tabPosibles');
+      const contenidoSuscriptores = document.getElementById('contenidoSuscriptores');
+      const contenidoPosibles = document.getElementById('contenidoPosibles');
+      
+      if (tab === 'suscriptores') {
+        tabSuscriptores.classList.add('active');
+        tabPosibles.classList.remove('active');
+        contenidoSuscriptores.style.display = 'block';
+        contenidoPosibles.style.display = 'none';
+      } else {
+        tabSuscriptores.classList.remove('active');
+        tabPosibles.classList.add('active');
+        contenidoSuscriptores.style.display = 'none';
+        contenidoPosibles.style.display = 'block';
+        cargarPosiblesClientes();
+      }
+    }
+    
+    // Cargar posibles clientes
+    async function cargarPosiblesClientes() {
+      try {
+        const posiblesListContent = document.getElementById('posiblesListContent');
+        if (!posiblesListContent) return;
+        
+        posiblesListContent.innerHTML = '<p style="color: #666; font-size: 14px;">Cargando...</p>';
+        
+        const response = await fetch('/api/posibles-clientes', {
+          headers: {
+            'Authorization': adminToken
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.posiblesClientes) {
+          const totalPosibles = document.getElementById('totalPosibles');
+          if (totalPosibles) {
+            totalPosibles.textContent = data.posiblesClientes.length;
+          }
+          
+          if (data.posiblesClientes.length === 0) {
+            posiblesListContent.innerHTML = '<p style="color: #666; font-size: 14px;">No hay posibles clientes aún.</p>';
+          } else {
+            const posiblesOrdenados = [...data.posiblesClientes].sort((a, b) => {
+              if (a.seleccionado && !b.seleccionado) return -1;
+              if (!a.seleccionado && b.seleccionado) return 1;
+              return 0;
+            });
+            
+            let html = '';
+            let seleccionadosCount = 0;
+            posiblesOrdenados.forEach((item, index) => {
+              if (item.seleccionado) seleccionadosCount++;
+              const emailEscaped = item.email.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+              const checked = item.seleccionado ? 'checked' : '';
+              html += `
+                <div class="email-item">
+                  <div class="email-item-content">
+                    <input type="checkbox" id="checkbox-posible-${index}" ${checked} onchange="toggleSeleccionarPosible('${emailEscaped}', this.checked)" style="width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;">
+                    <div class="email-item-info">
+                      <div class="email-item-email">${item.email}</div>
+                      <div class="email-item-fecha">Añadido el: ${item.fecha}</div>
+                    </div>
+                  </div>
+                  <div class="email-item-actions">
+                    <button onclick="eliminarPosibleCliente('${emailEscaped}')" class="btn-danger">Eliminar</button>
+                  </div>
+                </div>
+              `;
+            });
+            posiblesListContent.innerHTML = html;
+            
+            const totalSeleccionadosPosibles = document.getElementById('totalSeleccionadosPosibles');
+            if (totalSeleccionadosPosibles) {
+              totalSeleccionadosPosibles.textContent = seleccionadosCount;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar posibles clientes:', error);
+        const posiblesListContent = document.getElementById('posiblesListContent');
+        if (posiblesListContent) {
+          posiblesListContent.innerHTML = '<p style="color: #dc3545; font-size: 14px;">Error de conexión</p>';
+        }
+      }
+    }
+    
+    // Añadir posible cliente
+    async function añadirPosibleCliente() {
+      const input = document.getElementById('nuevoPosibleCliente');
+      const email = input.value.trim();
+      
+      if (!email) {
+        alert('Por favor, introduce un correo electrónico');
+        return;
+      }
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        alert('El formato del correo electrónico no es válido');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/posibles-clientes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': adminToken
+          },
+          body: JSON.stringify({ email })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          input.value = '';
+          await cargarPosiblesClientes();
+        } else {
+          alert('Error: ' + (data.error || 'Error al añadir el posible cliente'));
+        }
+      } catch (error) {
+        console.error('Error al añadir posible cliente:', error);
+        alert('Error de conexión al añadir el posible cliente');
+      }
+    }
+    
+    // Permitir añadir con Enter
+    const nuevoPosibleClienteInput = document.getElementById('nuevoPosibleCliente');
+    if (nuevoPosibleClienteInput) {
+      nuevoPosibleClienteInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          añadirPosibleCliente();
+        }
+      });
+    }
+    
+    // Toggle selección de un posible cliente
+    async function toggleSeleccionarPosible(email, seleccionado) {
+      try {
+        const response = await fetch(`/api/posibles-clientes/${encodeURIComponent(email)}/select`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': adminToken
+          },
+          body: JSON.stringify({ seleccionado: seleccionado })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          await cargarPosiblesClientes();
+        } else {
+          console.error('Error al actualizar selección:', data.error);
+          alert('Error al actualizar la selección');
+        }
+      } catch (error) {
+        console.error('Error al actualizar selección:', error);
+        alert('Error de conexión al actualizar la selección');
+      }
+    }
+    
+    // Seleccionar todos los posibles clientes
+    async function seleccionarTodosPosibles() {
+      try {
+        const response = await fetch('/api/posibles-clientes/select-all', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': adminToken
+          },
+          body: JSON.stringify({ seleccionado: true })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          await cargarPosiblesClientes();
+        } else {
+          alert('Error: ' + (data.error || 'Error al seleccionar todos'));
+        }
+      } catch (error) {
+        console.error('Error al seleccionar todos:', error);
+        alert('Error de conexión');
+      }
+    }
+    
+    // Deseleccionar todos los posibles clientes
+    async function deseleccionarTodosPosibles() {
+      try {
+        const response = await fetch('/api/posibles-clientes/select-all', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': adminToken
+          },
+          body: JSON.stringify({ seleccionado: false })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          await cargarPosiblesClientes();
+        } else {
+          alert('Error: ' + (data.error || 'Error al deseleccionar todos'));
+        }
+      } catch (error) {
+        console.error('Error al deseleccionar todos:', error);
+        alert('Error de conexión');
+      }
+    }
+    
+    // Eliminar un posible cliente
+    async function eliminarPosibleCliente(email) {
+      if (!confirm(`¿Estás seguro de que quieres eliminar el correo: ${email}?`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/posibles-clientes/${encodeURIComponent(email)}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': adminToken
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          await cargarPosiblesClientes();
+        } else {
+          alert('Error: ' + (data.error || 'Error al eliminar el posible cliente'));
+        }
+      } catch (error) {
+        console.error('Error al eliminar posible cliente:', error);
+        alert('Error de conexión al eliminar el posible cliente');
+      }
     }
     
     // Verificar contraseña e inicializar al cargar la página
