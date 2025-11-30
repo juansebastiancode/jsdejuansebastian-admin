@@ -610,14 +610,20 @@
           <button onclick="añadirPosibleCliente()" class="btn-primary" style="margin: 0; padding: 10px 20px;">Añadir</button>
       </div>
       
-        <div id="posiblesList" style="max-height: 400px; overflow-y: auto; background: #ffffff; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e0e0e0; position: relative;">
-          <div style="position: sticky; top: 0; background: #ffffff; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid #e0e0e0; z-index: 10;">
+        <div id="posiblesList" style="max-height: 400px; overflow-y: auto; background: #ffffff; padding: 0; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e0e0e0; position: relative;">
+          <div style="position: sticky; top: 0; background: #ffffff; padding: 15px 15px 10px 15px; margin-bottom: 10px; border-bottom: 1px solid #e0e0e0; z-index: 10;">
+            <div style="position: relative; margin-bottom: 10px;">
+              <svg style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: #999; pointer-events: none; z-index: 1;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+              <input type="text" id="buscadorPosibles" placeholder="Buscar por email..." style="width: 100%; padding: 10px 10px 10px 40px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; box-sizing: border-box;" oninput="filtrarPosiblesClientes()">
+            </div>
             <div style="display: flex; gap: 8px; margin: 0;">
               <button onclick="seleccionarTodosPosibles()" class="btn-secondary" style="margin: 0; padding: 8px 16px; font-size: 13px; width: auto;">Marcar Todos</button>
               <button onclick="deseleccionarTodosPosibles()" class="btn-secondary" style="margin: 0; padding: 8px 16px; font-size: 13px; width: auto;">Desmarcar Todos</button>
             </div>
           </div>
-          <div id="posiblesListContent">
+          <div id="posiblesListContent" style="padding: 0 15px 15px 15px;">
         <p style="color: #666; font-size: 14px;">Cargando...</p>
       </div>
     </div>
@@ -1409,11 +1415,23 @@
           if (data.posiblesClientes.length === 0) {
             posiblesListContent.innerHTML = '<p style="color: #666; font-size: 14px;">No hay posibles clientes aún.</p>';
           } else {
+            // Ordenar: primero seleccionados (sin importar si están enviados), luego no seleccionados
+            // Dentro de los no seleccionados, los no enviados primero
             const posiblesOrdenados = [...data.posiblesClientes].sort((a, b) => {
+              // Primero por seleccionado (prioridad máxima)
               if (a.seleccionado && !b.seleccionado) return -1;
               if (!a.seleccionado && b.seleccionado) return 1;
+              // Si ambos están seleccionados o ambos no, ordenar por enviado solo si NO están seleccionados
+              if (!a.seleccionado && !b.seleccionado) {
+                // Dentro de los no seleccionados, los no enviados primero
+                if (!a.enviado && b.enviado) return -1;
+                if (a.enviado && !b.enviado) return 1;
+              }
               return 0;
             });
+            
+            // Guardar la lista completa para filtrar
+            window.posiblesClientesCompletos = posiblesOrdenados;
             
             let html = '';
             let seleccionadosCount = 0;
@@ -1423,7 +1441,7 @@
               const checked = item.seleccionado ? 'checked' : '';
               const enviadoChecked = item.enviado ? 'checked' : '';
               html += `
-                <div class="email-item">
+                <div class="email-item" data-email="${item.email.toLowerCase()}">
                   <div class="email-item-content">
                     <input type="checkbox" id="checkbox-posible-${index}" ${checked} onchange="toggleSeleccionarPosible('${emailEscaped}', this.checked)" style="width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;">
                     <div class="email-item-info">
@@ -1432,10 +1450,7 @@
                     </div>
                   </div>
                   <div class="email-item-actions" style="display: flex; gap: 10px; align-items: center;">
-                    <label style="display: flex; align-items: center; gap: 5px; font-size: 13px; color: #666; cursor: pointer; white-space: nowrap;">
-                      <input type="checkbox" ${enviadoChecked} onchange="toggleEnviadoPosible('${emailEscaped}', this.checked, event)" style="width: 18px; height: 18px; cursor: pointer; accent-color: #28a745;" class="checkbox-enviado">
-                      <span class="enviado-label" style="${item.enviado ? 'color: #28a745; font-weight: 600;' : ''}">Enviado</span>
-                    </label>
+                    <input type="checkbox" ${enviadoChecked} onchange="toggleEnviadoPosible('${emailEscaped}', this.checked, event)" style="width: 18px; height: 18px; cursor: pointer; accent-color: #28a745;" class="checkbox-enviado" title="Enviado">
                     <button onclick="eliminarPosibleCliente('${emailEscaped}')" class="btn-danger">Eliminar</button>
                   </div>
                 </div>
@@ -1584,6 +1599,22 @@
       }
     }
     
+    // Filtrar posibles clientes por búsqueda
+    function filtrarPosiblesClientes() {
+      const buscador = document.getElementById('buscadorPosibles');
+      const termino = buscador ? buscador.value.toLowerCase().trim() : '';
+      const items = document.querySelectorAll('#posiblesListContent .email-item');
+      
+      items.forEach(item => {
+        const email = item.getAttribute('data-email') || '';
+        if (email.includes(termino)) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+    
     // Eliminar un posible cliente
     // Toggle estado "enviado" de un posible cliente
     async function toggleEnviadoPosible(email, enviado, event) {
@@ -1600,19 +1631,7 @@
         const data = await response.json();
         
         if (response.ok && data.success) {
-          // Actualizar el estilo del label según el estado
-          if (event && event.target) {
-            const checkbox = event.target;
-            const label = checkbox.closest('label');
-            const span = label.querySelector('span');
-            if (enviado) {
-              span.style.color = '#28a745';
-              span.style.fontWeight = '600';
-            } else {
-              span.style.color = '#666';
-              span.style.fontWeight = 'normal';
-            }
-          }
+          // El checkbox ya se actualiza automáticamente
         } else {
           console.error('Error al actualizar estado enviado:', data.error);
           alert('Error al actualizar el estado enviado');
