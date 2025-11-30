@@ -262,6 +262,24 @@
       flex-shrink: 0;
     }
     
+    /* Estilos para el checkbox de "Enviado" */
+    .email-item-actions input[type="checkbox"]:checked {
+      accent-color: #28a745;
+      background-color: #28a745;
+      border-color: #28a745;
+    }
+    
+    .email-item-actions label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .email-item-actions label:has(input:checked) span {
+      color: #28a745;
+      font-weight: 600;
+    }
+    
     .message {
       margin-top: 15px;
       padding: 12px;
@@ -1031,6 +1049,11 @@
           document.getElementById(asuntoInputId).value = '';
           document.getElementById(mensajeInputId).value = '';
             
+            // Si se envió a posibles clientes, recargar la lista para actualizar el estado "enviado"
+            if (tipo === 'posibles') {
+              await cargarPosiblesClientes();
+            }
+            
             setTimeout(() => {
               correoMessage.className = 'message';
               correoMessage.style.display = 'none';
@@ -1398,6 +1421,7 @@
               if (item.seleccionado) seleccionadosCount++;
               const emailEscaped = item.email.replace(/'/g, "\\'").replace(/"/g, '&quot;');
               const checked = item.seleccionado ? 'checked' : '';
+              const enviadoChecked = item.enviado ? 'checked' : '';
               html += `
                 <div class="email-item">
                   <div class="email-item-content">
@@ -1407,7 +1431,11 @@
                       <div class="email-item-fecha">Añadido el: ${item.fecha}</div>
                     </div>
                   </div>
-                  <div class="email-item-actions">
+                  <div class="email-item-actions" style="display: flex; gap: 10px; align-items: center;">
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 13px; color: #666; cursor: pointer; white-space: nowrap;">
+                      <input type="checkbox" ${enviadoChecked} onchange="toggleEnviadoPosible('${emailEscaped}', this.checked, event)" style="width: 18px; height: 18px; cursor: pointer; accent-color: #28a745;" class="checkbox-enviado">
+                      <span class="enviado-label" style="${item.enviado ? 'color: #28a745; font-weight: 600;' : ''}">Enviado</span>
+                    </label>
                     <button onclick="eliminarPosibleCliente('${emailEscaped}')" class="btn-danger">Eliminar</button>
                   </div>
                 </div>
@@ -1557,6 +1585,52 @@
     }
     
     // Eliminar un posible cliente
+    // Toggle estado "enviado" de un posible cliente
+    async function toggleEnviadoPosible(email, enviado, event) {
+      try {
+        const response = await fetch(`/api/posibles-clientes/${encodeURIComponent(email)}/enviado`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': adminToken
+          },
+          body: JSON.stringify({ enviado: enviado })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          // Actualizar el estilo del label según el estado
+          if (event && event.target) {
+            const checkbox = event.target;
+            const label = checkbox.closest('label');
+            const span = label.querySelector('span');
+            if (enviado) {
+              span.style.color = '#28a745';
+              span.style.fontWeight = '600';
+            } else {
+              span.style.color = '#666';
+              span.style.fontWeight = 'normal';
+            }
+          }
+        } else {
+          console.error('Error al actualizar estado enviado:', data.error);
+          alert('Error al actualizar el estado enviado');
+          // Revertir el checkbox si hay error
+          if (event && event.target) {
+            event.target.checked = !enviado;
+          }
+        }
+      } catch (error) {
+        console.error('Error al actualizar estado enviado:', error);
+        alert('Error de conexión al actualizar el estado enviado');
+        // Revertir el checkbox si hay error
+        if (event && event.target) {
+          event.target.checked = !enviado;
+        }
+      }
+    }
+    
     async function eliminarPosibleCliente(email) {
       if (!confirm(`¿Estás seguro de que quieres eliminar el correo: ${email}?`)) {
         return;

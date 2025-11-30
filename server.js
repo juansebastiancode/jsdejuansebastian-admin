@@ -36,7 +36,8 @@ const Plantilla = mongoose.model('Plantilla', plantillaSchema, 'plantillas');
 const posibleClienteSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
   fecha: { type: String, required: true },
-  seleccionado: { type: Boolean, default: false }
+  seleccionado: { type: Boolean, default: false },
+  enviado: { type: Boolean, default: false }
 }, { timestamps: false });
 
 const PosibleCliente = mongoose.model('PosibleCliente', posibleClienteSchema, 'posiblesClientes');
@@ -420,6 +421,18 @@ app.post('/api/newsletter/send', async (req, res) => {
     
     console.log(`=== Envío completado: ${exitosos} exitosos, ${fallidos} fallidos ===`);
     
+    // Si se envió a posibles clientes, marcar como enviado los que fueron exitosos
+    if (tipo === 'posibles') {
+      const emailsExitosos = resultados.filter(r => r.success).map(r => r.email);
+      if (emailsExitosos.length > 0) {
+        await PosibleCliente.updateMany(
+          { email: { $in: emailsExitosos } },
+          { enviado: true }
+        );
+        console.log(`✓ Marcados ${emailsExitosos.length} posibles clientes como enviados`);
+      }
+    }
+    
     res.json({ 
       success: true, 
       message: `Enviados ${exitosos} correos exitosamente${fallidos > 0 ? `, ${fallidos} fallidos` : ''}`,
@@ -775,6 +788,44 @@ app.delete('/api/posibles-clientes/:email', async (req, res) => {
   } catch (error) {
     console.error('Error al eliminar posible cliente:', error);
     res.status(500).json({ error: 'Error al eliminar el posible cliente' });
+  }
+});
+
+// Actualizar estado de "enviado" de un posible cliente (solo admin)
+app.put('/api/posibles-clientes/:email/enviado', async (req, res) => {
+  try {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'PUT, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    const token = authHeader?.replace('Bearer ', '') || authHeader;
+    
+    if (!token || !adminSessions.has(token)) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    
+    const emailToUpdate = decodeURIComponent(req.params.email).toLowerCase();
+    const { enviado } = req.body;
+    
+    if (typeof enviado !== 'boolean') {
+      return res.status(400).json({ error: 'El campo "enviado" debe ser un booleano' });
+    }
+    
+    const result = await PosibleCliente.findOneAndUpdate(
+      { email: emailToUpdate },
+      { enviado: enviado },
+      { new: true, lean: true }
+    );
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Correo no encontrado' });
+    }
+    
+    res.json({ success: true, posibleCliente: result });
+  } catch (error) {
+    console.error('Error al actualizar estado enviado:', error);
+    res.status(500).json({ error: 'Error al actualizar el estado enviado' });
   }
 });
 
