@@ -374,6 +374,12 @@ app.post('/api/newsletter/send', async (req, res) => {
           console.error(`✗ Error al enviar a ${email}:`, error.message);
           resultados.push({ email, success: false, error: error.message });
         }
+
+        // Respetar el rate limit de Resend (2 req/seg aprox).
+        // Añadimos una pequeña pausa entre envíos para evitar "Too many requests".
+        if (i < destinatarios.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 700));
+        }
       }
     } else {
       // Fallback a Gmail SMTP
